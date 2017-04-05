@@ -1,3 +1,18 @@
+#########################################
+#The sentiments dataset includes the following features
+
+#- word, an english word (unigram)
+#- sentiment, one of either positive, negative, anger, anticipation, disgust, 
+#  fear, joy, sadness, surprise, trust, or NA.
+#   * the Bing lexicon has positive/negative,
+#   * the NRC lexicon has all options except NA, and
+#   * the AFINN lexicon has only NA.
+#- lexicon, the source either “nrc”, “bing” or “AFINN”
+#- score, A numerical score for the sentiment. This value is NA 
+#  for the Bing and NRC lexicons, and runs between -5 and 5 for the AFINN 
+#  lexicon.
+##########################################
+
 library(syuzhet)
 sentences <- get_sentences(text1)
 class(sentences)
