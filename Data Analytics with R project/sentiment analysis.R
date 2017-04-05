@@ -5,7 +5,7 @@ str(sentences)
 head(sentences)
 
 
-searchtweet <- searchTwitteR(searchString = "UCONN",n = 2500)
+searchtweet <- return.object
 class(searchtweet)
 library(dplyr)
 str(searchtweet)
@@ -14,7 +14,7 @@ length(searchtweet)
 # list to dataframe
 df.tweets <- twListToDF(searchtweet)
 summary(df.tweets)
-df.tweets$text
+head(df.tweets$text)
 
 ############################ cleaning stuff #####################
 df.tweets$text1 = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
@@ -59,8 +59,8 @@ plot(senti_syuzhet,type = "l")
 abline(h=mean(senti_syuzhet))
 plot(senti_syuzhet,type = "h")
 ###
-## evaluate percent values after breaking tweets into chunks of 10
-percent_sentiments_all <- sapply(sentiments_all,get_percentage_values,bins=10)
+## evaluate percent values after breaking tweets into chunks of 25
+percent_sentiments_all <- sapply(sentiments_all,get_percentage_values,bins=25)
 
 # 2x2 matrix for graphs
 opar = par()
@@ -72,3 +72,72 @@ plot(percent_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
 plot(percent_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
 
 
+## smoothing and normalization using fourier transformation and low pass filtering
+ft_vals_sentiments_all <- sapply(sentiments_all,get_transformed_values,
+                                 low_pass_size = 3, 
+                                 x_reverse_len = 100,
+                                 padding_factor = 2,
+                                 scale_vals = TRUE,
+                                 scale_range = FALSE)
+
+# 2x2 matrix for graphs
+opar = par()
+par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
+## plots
+plot(ft_vals_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
+plot(ft_vals_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
+plot(ft_vals_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
+plot(ft_vals_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
+
+####################
+## smoothing and normalization using Discrete cosine transform (DCT) and low pass filter
+dct_vals_sentiments_all <- sapply(sentiments_all,get_dct_transform,
+                                 low_pass_size = 5, 
+                                 x_reverse_len = 100,
+                                 scale_vals = F,
+                                 scale_range = T)
+
+# 2x2 matrix for graphs
+opar = par()
+par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
+## plots
+plot(dct_vals_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
+plot(dct_vals_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
+plot(dct_vals_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
+plot(dct_vals_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
+
+
+############ Simple plot
+# 2x2 matrix for graphs
+#opar = par()
+#par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
+## plots
+simple_plot(sentiments_all[,"senti_bing"],title = "bing sentiments")
+simple_plot(sentiments_all[,"senti_afinn"],title = "afinn sentiments")
+simple_plot(sentiments_all[,"senti_nrc"],title = "nrc sentiments")
+simple_plot(sentiments_all[,"senti_syuzhet"],title = "syuzhet sentiments")
+
+##### NRC Lexicons
+nrc_data <- get_nrc_sentiment(df.tweets$text1)
+tweets.of.joy_nrc <- df.tweets$text1[nrc_data$joy != 0]
+# sample
+head(tweets.of.joy_nrc)
+## barplot
+barplot(
+  sort(colSums(prop.table(nrc_data[, 1:8]))), 
+  horiz = TRUE, 
+  cex.names = 0.7, 
+  las = 1, 
+  main = "Emotions in Sample text", xlab="Percentage"
+)
+
+# Stanford CoreNLP
+#stanford.NLP.path <- file.path("C:","Users","NeerajSubhedar","Documents","R",
+#                               "win-library","3.3","NLP","texts")
+#stanford.NLP.jar <- file.path("C:","Users","NeerajSubhedar","Documents","StanfordCoreNLP")
+#stanford_data <- get_stanford_sentiment(df.tweets$text1,paste0(stanford.NLP.path,"/stanford.rds"))
+#stanford_data <- get_stanford_sentiment(df.tweets$text1,
+#                                        paste0(stanford.NLP.jar,
+#"/stanford-english-corenlp-2016-10-31-models.jar"))
+
+#stanford_data <- get_sentiment(df.tweets$text1,method = "stanford",stanford.NLP.jar)
