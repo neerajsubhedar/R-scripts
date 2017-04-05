@@ -43,6 +43,7 @@ df.tweets$text1 = gsub("[[:digit:]]", "", df.tweets$text1)
 df.tweets$text1 = gsub("http\\w+", "", df.tweets$text1)
 # remove unnecessary spaces
 df.tweets$text1 = gsub("[ \t]{2,}", "", df.tweets$text1)
+
 df.tweets$text1 = gsub("^\\s+|\\s+$", "", df.tweets$text1)
 #################################################################
 library(stringr)
