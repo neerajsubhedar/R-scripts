@@ -59,4 +59,16 @@ plot(senti_syuzhet,type = "l")
 abline(h=mean(senti_syuzhet))
 plot(senti_syuzhet,type = "h")
 ###
+## evaluate percent values after breaking tweets into chunks of 10
+percent_sentiments_all <- sapply(sentiments_all,get_percentage_values,bins=10)
+
+# 2x2 matrix for graphs
+opar = par()
+par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
+## plots
+plot(percent_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
+plot(percent_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
+plot(percent_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
+plot(percent_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
+
 
