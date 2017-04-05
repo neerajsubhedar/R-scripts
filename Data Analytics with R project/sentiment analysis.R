@@ -66,7 +66,7 @@ senti_nrc <- get_sentiment(df.tweets$text1,method = "nrc")
 
 sentiments_all <- cbind.data.frame(senti_syuzhet,senti_bing,
                                    senti_afinn, senti_nrc)
-write.csv(sentiments_all,"C:/Users/NeerajSubhedar/Desktop/senti/sentiment.csv")
+#write.csv(sentiments_all,"C:/Users/NeerajSubhedar/Desktop/senti/sentiment.csv")
 ### summary
 sum(senti_syuzhet)
 mean(senti_syuzhet)
@@ -140,6 +140,14 @@ head(tweets.of.joy_nrc)
 ## barplot
 barplot(
   sort(colSums(prop.table(nrc_data[, 1:8]))), 
+  horiz = TRUE, 
+  cex.names = 0.7, 
+  las = 1, 
+  main = "Emotions in Sample text", xlab="Percentage"
+)
+
+barplot(
+  sort(colSums(prop.table(nrc_data[, 9:10]))), 
   horiz = TRUE, 
   cex.names = 0.7, 
   las = 1, 

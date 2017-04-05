@@ -16,15 +16,15 @@ oauth <- setup_twitter_oauth(consumer_key = "RTPZs421qBw2rnPtNGsaG6V7S",
                              access_token = "75229041-KfJBkGaKgZCSLWSF1kuQbsAZHjBS4bGyntg7tTzbE",
                              access_secret = "M63vL0YGCQ8HGzYJEy5wccAtKq3aBOEloxl1hZXYXCSQj")
 
-user1 <- getUser("neerajsub")
-location <- closestTrendLocations(lat = 41, long = 72)
-trends <- getTrends(location$woeid)
+#user1 <- getUser("neerajsub")
+#location <- closestTrendLocations(lat = 41, long = 72)
+#trends <- getTrends(location$woeid)
 
-search1 <- searchTwitteR(searchString = "#Trump", n=100)
-usertl <- userTimeline("AnkitRB",n = 50)
-usertl <- NULL
-searchTwitter("patriots", geocode="42.375,-71.1061111,100mi")
-searchTwitter('patriots', geocode='42.375,-71.1061111,100mi',since = '2017-02-05',until = '2017-02-06')
+#search1 <- searchTwitteR(searchString = "#Trump", n=100)
+#usertl <- userTimeline("AnkitRB",n = 50)
+#usertl <- NULL
+#searchTwitter("patriots", geocode="42.375,-71.1061111,100mi")
+#searchTwitter('patriots', geocode='42.375,-71.1061111,100mi',since = '2017-02-05',until = '2017-02-06')
 
 
 ############

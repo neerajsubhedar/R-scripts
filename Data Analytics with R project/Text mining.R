@@ -94,8 +94,31 @@ senti <- getSentiment(text1,key = "e0735be37cc97737e32275e5c8c921f7")
 # Building corpus
 ##################
 
+searchtweet <- return.object
+df.tweets <- twListToDF(searchtweet)
+
+###########
+df.tweets$text1 = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
+# Remove at people
+df.tweets$text1 = gsub("@\\w+", "", df.tweets$text1)
+# Remove punctuation
+df.tweets$text1 = gsub("[[:punct:]]", "", df.tweets$text1)
+# Remove numbers
+df.tweets$text1 = gsub("[[:digit:]]", "", df.tweets$text1)
+# Remove html links
+df.tweets$text1 = gsub("http\\w+", "", df.tweets$text1)
+# remove unnecessary spaces
+df.tweets$text1 = gsub("[ \t]{2,}", "", df.tweets$text1)
+df.tweets$text1 = gsub("^\\s+|\\s+$", "", df.tweets$text1)
+#################################################################
+## fixes the error 
+## "Error in tolower(char_v) : invalid input 
+## 'Back to UCONN I go í ½í¸©í ½í¹Œí ¼í¿¾' in 'utf8towcs'"
+df.tweets$text1 <- str_replace_all(df.tweets$text1,"[^[:graph:]]", " ")
+###########
+
 # creates a text corpus from the plain text document for every tweet
-text_corpus <- Corpus(VectorSource(text1))
+text_corpus <- Corpus(VectorSource(df.tweets$text1))
 
 # creating a Term Document Matrix 
 tdm <- TermDocumentMatrix(
