@@ -14,22 +14,22 @@
 ##########################################
 
 library(syuzhet)
-sentences <- get_sentences(text1)
-class(sentences)
-str(sentences)
-head(sentences)
+#sentences <- get_sentences(text1)
+#class(sentences)
+#str(sentences)
+#head(sentences)
 
 
 searchtweet <- return.object
-class(searchtweet)
+#class(searchtweet)
 library(dplyr)
-str(searchtweet)
+#str(searchtweet)
 
-length(searchtweet)
+#length(searchtweet)
 # list to dataframe
 df.tweets <- twListToDF(searchtweet)
-summary(df.tweets)
-head(df.tweets$text)
+#summary(df.tweets)
+#head(df.tweets$text)
 
 ############################ cleaning stuff #####################
 df.tweets$text1 = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
@@ -45,6 +45,7 @@ df.tweets$text1 = gsub("http\\w+", "", df.tweets$text1)
 df.tweets$text1 = gsub("[ \t]{2,}", "", df.tweets$text1)
 df.tweets$text1 = gsub("^\\s+|\\s+$", "", df.tweets$text1)
 #################################################################
+library(stringr)
 ## fixes the error 
 ## "Error in tolower(char_v) : invalid input 
 ## 'Back to UCONN I go í ½í¸©í ½í¹Œí ¼í¿¾' in 'utf8towcs'"
