@@ -24,8 +24,8 @@ project.initialize <- function(){
   library(git2r)
   library(digest)
   #require(devtools)
-  install_github("hadley/devtools")
-  library(devtools)
+  #install_github("hadley/devtools")
+  #library(devtools)
   install_github("geoffjentry/twitteR")
   
   ## data manipultion
