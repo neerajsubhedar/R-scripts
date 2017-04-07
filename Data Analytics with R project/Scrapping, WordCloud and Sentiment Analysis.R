@@ -71,7 +71,16 @@ getNumber <- function(){
 }
 
 # Runs searchTwitter function based on the search string input provided by the user
+
 # To-Be-Implemented: get gecode information from user
+# Implementation completed
+getLatLong.zip <- function(enter.zipcode = "06105",radius.mi = "100mi"){
+  attach(zipcode)
+  lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
+  lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi)
+  return(lat.long.mi)
+}
+
 # To-Be-Implemented: handle error for mismatch in number of tweets
 searchThis <- function(search_string,geocode_string = "42.375,-71.1061111,1000mi",number.of.tweets = 100){
   searchTwitter(search_string, geocode=geocode_string,n = number.of.tweets)
