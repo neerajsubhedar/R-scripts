@@ -32,7 +32,7 @@ project.initialize <- function(){
   
   # loading the libraries
   ## Linked to importing tweets
-  library(rjson);library(httr);library(twitteR);library(zipcode)
+  library(rjson);library(httr);library(twitteR);library(zipcode);data("zipcode")
   
   ## Linked to generating a wordcloud
   library(tm);library(NLP);library(RCurl);library(RJSONIO)
