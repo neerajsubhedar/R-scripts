@@ -47,7 +47,6 @@ project.initialize <- function(){
                                access_secret = "M63vL0YGCQ8HGzYJEy5wccAtKq3aBOEloxl1hZXYXCSQj")
 }
 
-
 #############################
 # Functions to import tweets
 #############################
@@ -74,6 +73,20 @@ getNumber <- function(){
 
 # To-Be-Implemented: get gecode information from user
 # Implementation completed
+
+# Function to prompt the user to input the zip code
+getZipCode <- function(){
+  zip.code <- readline(prompt = "Enter zipcode (should be between 00210 and 99950): ")
+  return(as.character(zip.code))
+}
+
+# Function to prompt the user to input radius in miles
+getMiles <- function(){
+  miles <- readline(prompt = "Enter the radius, in miles, to search for tweets: ")
+  return(as.character(miles))
+}
+
+# Returns a vector containing latitude and longitude with zipcode and radius as inputs
 getLatLong.zip <- function(enter.zipcode = "06105",radius.mi = "100mi"){
   attach(zipcode)
   lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
@@ -108,9 +121,17 @@ run.the.code <- function(){
   choice <- getType()
   
   # Selects whether user wants to search by string or by user based the choice 
+  # Implemented
   if (choice == 1) {
     find.on.twitter <- getString()
     num <- getNumber()
+    # zip.code <- getZipCode()
+    # rad.mi <- getMiles()
+    # geocode.string <- getLatLong.zip(enter.zipcode = zip.code,radius.mi = rad.mi)
+    # implementation fails, reason to be determined
+    # out <- searchThis(search_string = find.on.twitter,
+    #                  number.of.tweets = num,geocode_string = geocode.string)
+    # falling back to original code
     # returns tweets as a list
     out <- searchThis(search_string = find.on.twitter,
                       number.of.tweets = num)
