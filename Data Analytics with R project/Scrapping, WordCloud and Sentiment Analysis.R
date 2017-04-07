@@ -15,14 +15,13 @@ project.initialize <- function(){
   list.of.packages <- c("git2r","digest","devtools",
                         "RCurl","RJSONIO","stringr","syuzhet","httr",
                         "rjson","tm","NLP","RCurl","wordcloud",
-                        "tidytext","dplyr")
+                        "tidytext","dplyr","zipcode")
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
   
   ## for devtools
-  library(git2r)
-  library(digest)
+  library(git2r);library(digest)
   #require(devtools)
   #install_github("hadley/devtools")
   library(devtools)
@@ -33,7 +32,7 @@ project.initialize <- function(){
   
   # loading the libraries
   ## Linked to importing tweets
-  library(rjson);library(httr);library(twitteR)
+  library(rjson);library(httr);library(twitteR);library(zipcode)
   
   ## Linked to generating a wordcloud
   library(tm);library(NLP);library(RCurl);library(RJSONIO)
