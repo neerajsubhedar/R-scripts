@@ -22,8 +22,8 @@ project.initialize <- function(){
   
   ## for devtools
   library(git2r);library(digest)
-  require(devtools)
-  install_github("hadley/devtools")
+  #require(devtools)
+  #install_github("hadley/devtools")
   library(devtools)
   install_github("geoffjentry/twitteR")
   
@@ -32,7 +32,7 @@ project.initialize <- function(){
   
   # loading the libraries
   ## Linked to importing tweets
-  library(rjson);library(httr);library(twitteR);library(zipcode);data("zipcode")
+  library(rjson);library(httr);library(twitteR);library(zipcode)
   
   ## Linked to generating a wordcloud
   library(tm);library(NLP);library(RCurl);library(RJSONIO)
@@ -71,7 +71,6 @@ getNumber <- function(){
 }
 
 # Runs searchTwitter function based on the search string input provided by the user
-
 # To-Be-Implemented: get gecode information from user
 # Implementation completed
 
@@ -89,6 +88,7 @@ getMiles <- function(){
 
 # Returns a vector containing latitude and longitude with zipcode and radius as inputs
 getLatLong.zip <- function(enter.zipcode,radius.mi){
+  data("zipcode")
   attach(zipcode)
   enter.zipcode <- as.character(enter.zipcode)
   radius.mi <- as.character(radius.mi)
@@ -112,6 +112,29 @@ getUser <- function(){
 # To-Be-Implemented: handle error for mismatch in number of tweets
 userTL <- function(user.name,number.of.tweets = 100){
   userTimeline(user.name,n = number.of.tweets)
+}
+
+# Cleans the tweets
+cleanTweets <- function(object.with.tweets){
+  # list to dataframe
+  df.tweets <- twListToDF(object.with.tweets)
+  
+  # Removes RT
+  df.tweets$text_clean = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
+  # Removes @<twitter handle>
+  df.tweets$text_clean = gsub("@\\w+", "", df.tweets$text_clean)
+  # Removes punctuations
+  df.tweets$text_clean = gsub("[[:punct:]]", "", df.tweets$text_clean)
+  # Removes numbers
+  df.tweets$text_clean = gsub("[[:digit:]]", "", df.tweets$text_clean)
+  # Removes html links
+  df.tweets$text_clean = gsub("http\\w+", "", df.tweets$text_clean)
+  # Removes unnecessary spaces
+  df.tweets$text_clean = gsub("[ \t]{2,}", "", df.tweets$text_clean)
+  df.tweets$text_clean = gsub("^\\s+|\\s+$", "", df.tweets$text_clean)
+  # Fix for error related to formatting 'utf8towcs'"
+  df.tweets$text_clean <- str_replace_all(df.tweets$text_clean,"[^[:graph:]]", " ")
+  return(df.tweets)
 }
 
 #################################################################################
@@ -154,29 +177,9 @@ run.the.code <- function(){
 ##############################
 
 generateWordCloud <- function(object.with.tweets, minimum.frequency = 10){
-  ## importing the tweets object to a dataframe
-  df.tweets <- twListToDF(object.with.tweets)
-  ## defining a new object to store tweets after cleaning
-  df.tweets$text_clean <- NULL
-  # Removes 'RT'
-  df.tweets$text_clean = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
-  # Removes '@<twitter handle>
-  df.tweets$text_clean = gsub("@\\w+", "", df.tweets$text_clean)
-  # Removes punctuations
-  df.tweets$text_clean = gsub("[[:punct:]]", "", df.tweets$text_clean)
-  # Removes numbers
-  df.tweets$text_clean = gsub("[[:digit:]]", "", df.tweets$text_clean)
-  # Removes html links
-  df.tweets$text_clean = gsub("http\\w+", "", df.tweets$text_clean)
-  # Removes unnecessary spaces
-  df.tweets$text_clean = gsub("[ \t]{2,}", "", df.tweets$text_clean)
-  df.tweets$text_clean = gsub("^\\s+|\\s+$", "", df.tweets$text_clean)
-  ############################################################
-  ## fix for an error 
-  ## "Error in tolower(char_v) : invalid input 
-  ## <invalid input string with error> in 'utf8towcs'"
-  ############################################################
-  df.tweets$text_clean <- str_replace_all(df.tweets$text_clean,"[^[:graph:]]", " ")
+  
+  ## Cleans the tweets ans stores them as a dataframe
+  df.tweets <- cleanTweets(object.with.tweets)
   
   # Creates a text corpus from the plain text document for every tweet
   text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
@@ -233,24 +236,8 @@ generateWordCloud <- function(object.with.tweets, minimum.frequency = 10){
 
 getSentiments <- function(object.with.tweets){
   
-  # list to dataframe
-  df.tweets <- twListToDF(object.with.tweets)
-  
-  # Removes RT
-  df.tweets$text_clean = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", df.tweets$text)
-  # Removes @<twitter handle>
-  df.tweets$text_clean = gsub("@\\w+", "", df.tweets$text_clean)
-  # Removes punctuations
-  df.tweets$text_clean = gsub("[[:punct:]]", "", df.tweets$text_clean)
-  # Removes numbers
-  df.tweets$text_clean = gsub("[[:digit:]]", "", df.tweets$text_clean)
-  # Removes html links
-  df.tweets$text_clean = gsub("http\\w+", "", df.tweets$text_clean)
-  # Removes unnecessary spaces
-  df.tweets$text_clean = gsub("[ \t]{2,}", "", df.tweets$text_clean)
-  df.tweets$text_clean = gsub("^\\s+|\\s+$", "", df.tweets$text_clean)
-  # Fix for error related to formatting 'utf8towcs'"
-  df.tweets$text_clean <- str_replace_all(df.tweets$text_clean,"[^[:graph:]]", " ")
+  # cleans the tweets and returns them as a dataframe
+  df.tweets <- cleanTweets(object.with.tweets)
   
   # Sentiments using the syuzhet NLP library
   senti_syuzhet <- get_sentiment(df.tweets$text_clean,method = "syuzhet")
