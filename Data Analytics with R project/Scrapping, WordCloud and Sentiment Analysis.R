@@ -15,7 +15,7 @@ project.initialize <- function(){
   list.of.packages <- c("git2r","digest","devtools",
                         "RCurl","RJSONIO","stringr","syuzhet","httr",
                         "rjson","tm","NLP","RCurl","wordcloud",
-                        "tidytext","dplyr","zipcode","bit")
+                        "tidytext","dplyr","zipcode","bit","wordcloud2")
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
@@ -36,7 +36,7 @@ project.initialize <- function(){
   
   ## Linked to generating a wordcloud
   library(tm);library(NLP);library(RCurl);library(RJSONIO)
-  library(stringr);library(wordcloud)
+  library(stringr);library(wordcloud);library(wordcloud2)
   
   ## Linked to sentiment analysis
   library(syuzhet)
@@ -159,8 +159,8 @@ run.the.code <- function(){
                       number.of.tweets = num,geocode_string = geocode.string)
     # falling back to original code
     # returns tweets as a list
-    out <- searchThis(search_string = find.on.twitter,
-                      number.of.tweets = num)
+    #out <- searchThis(search_string = find.on.twitter,
+    #                  number.of.tweets = num)
   } else if (choice == 2) {
     user.tl <- getUser()
     num <- getNumber()
@@ -208,8 +208,9 @@ generateWordCloud <- function(object.with.tweets, minimum.frequency = 10){
   
   # creating word cloud
   # wordcloud(word, associated frequency, ordering, color palette)
-  wordcloud(dm$word, dm$freq, min.freq=minimum.frequency, random.order = FALSE, 
-            colors = brewer.pal(11, "Spectral"))
+  #wordcloud(dm$word, dm$freq, min.freq=minimum.frequency, random.order = FALSE, 
+  #          colors = brewer.pal(11, "Spectral"))
+  wordcloud2(data = dm,minSize = 5)
   #png(filename=plotfile1, width=740, height=740, units="px") # optional
 }
 
