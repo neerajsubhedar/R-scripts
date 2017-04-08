@@ -87,10 +87,12 @@ getMiles <- function(){
 }
 
 # Returns a vector containing latitude and longitude with zipcode and radius as inputs
-getLatLong.zip <- function(enter.zipcode = "06105",radius.mi = "100mi"){
+getLatLong.zip <- function(enter.zipcode,radius.mi){
   attach(zipcode)
+  enter.zipcode <- as.character(enter.zipcode)
+  radius.mi <- as.character(radius.mi)
   lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
-  lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi)
+  lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi,"mi")
   return(lat.long.mi)
 }
 
