@@ -357,6 +357,8 @@ cat("\014")
 # 4. returns the tweets as a list
 # 5. stores the list of tweets to return.object
 project.initialize()
+## clears the console
+cat("\014")
 return.object <- run.the.code()
 
 ##########################################################################
