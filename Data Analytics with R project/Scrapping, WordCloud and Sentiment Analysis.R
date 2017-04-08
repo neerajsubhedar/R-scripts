@@ -125,12 +125,12 @@ run.the.code <- function(){
   if (choice == 1) {
     find.on.twitter <- getString()
     num <- getNumber()
-    # zip.code <- getZipCode()
-    # rad.mi <- getMiles()
-    # geocode.string <- getLatLong.zip(enter.zipcode = zip.code,radius.mi = rad.mi)
+    zip.code <- getZipCode()
+    rad.mi <- getMiles()
+    geocode.string <- getLatLong.zip(enter.zipcode = zip.code,radius.mi = rad.mi)
     # implementation fails, reason to be determined
-    # out <- searchThis(search_string = find.on.twitter,
-    #                  number.of.tweets = num,geocode_string = geocode.string)
+    out <- searchThis(search_string = find.on.twitter,
+                      number.of.tweets = num,geocode_string = geocode.string)
     # falling back to original code
     # returns tweets as a list
     out <- searchThis(search_string = find.on.twitter,
