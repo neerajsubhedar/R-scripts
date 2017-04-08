@@ -15,15 +15,15 @@ project.initialize <- function(){
   list.of.packages <- c("git2r","digest","devtools",
                         "RCurl","RJSONIO","stringr","syuzhet","httr",
                         "rjson","tm","NLP","RCurl","wordcloud",
-                        "tidytext","dplyr","zipcode")
+                        "tidytext","dplyr","zipcode","bit")
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
   
   ## for devtools
   library(git2r);library(digest)
-  #require(devtools)
-  #install_github("hadley/devtools")
+  require(devtools)
+  install_github("hadley/devtools")
   library(devtools)
   install_github("geoffjentry/twitteR")
   
@@ -41,6 +41,7 @@ project.initialize <- function(){
   ## Linked to sentiment analysis
   library(syuzhet)
   
+  # Twitter authentication key
   oauth <- setup_twitter_oauth(consumer_key = "RTPZs421qBw2rnPtNGsaG6V7S",
                                consumer_secret = "kY4CgL7SdnYtkLqobAqMqDBNc7ASJ2Ks7rTLG4HhLbH7tUBfIv",
                                access_token = "75229041-KfJBkGaKgZCSLWSF1kuQbsAZHjBS4bGyntg7tTzbE",
