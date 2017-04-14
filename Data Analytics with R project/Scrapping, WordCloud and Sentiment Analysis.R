@@ -178,7 +178,7 @@ run.the.code <- function(){
 # Generate wordcloud function
 ##############################
 
-generateWordCloud <- function(object.with.tweets, minimum.frequency = 10){
+generateWordCloud.tmStopWords <- function(object.with.tweets, minimum.frequency = 10){
   
   ## Cleans the tweets ans stores them as a dataframe
   df.tweets <- cleanTweets(object.with.tweets)
