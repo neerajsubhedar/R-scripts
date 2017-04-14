@@ -361,6 +361,6 @@ return.object <- run.the.code()
 ## creating a copy of the tweets object
 searchtweet <- return.object
 ## generate WordCloud
-generateWordCloud(searchtweet)
+generateWordCloud.tmStopWords(searchtweet)
 ## get sentiments
 getSentiments(searchtweet)
