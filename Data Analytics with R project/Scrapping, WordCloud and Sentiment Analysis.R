@@ -94,6 +94,8 @@ getLatLong.zip <- function(enter.zipcode,radius.mi){
   radius.mi <- as.character(radius.mi)
   lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
   lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi,"mi")
+  detach(zipcode)
+  rm(list = c("zipcode"))
   return(lat.long.mi)
 }
 
