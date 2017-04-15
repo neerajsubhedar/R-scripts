@@ -247,6 +247,8 @@ generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10)
   wordcloud2(data = subset.dm)
 } 
 
+
+
 ##########################################################################
 # Get sentiments using the syuzhet package
 # currently using the sentiment libraries
