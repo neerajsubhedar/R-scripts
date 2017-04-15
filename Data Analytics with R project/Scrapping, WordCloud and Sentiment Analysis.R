@@ -425,3 +425,4 @@ generateWordCloud.tmStopWords(searchtweet)
 generateWordCloud.TF_IDF(searchtweet)
 ## get sentiments
 getSentiments.all(searchtweet)
+getSentiments.TF_IDF.nrc(searchtweet)
