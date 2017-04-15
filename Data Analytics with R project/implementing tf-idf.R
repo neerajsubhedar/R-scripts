@@ -15,12 +15,36 @@
   
   # converting term document matrix to matrix
   m <- as.matrix(tdm)
+  head(m)
+  str(m)
   
   # get word counts in decreasing order
   #word_freqs <- sort(rowSums(m), decreasing = TRUE)
   word_freqs <- sort(colSums(m), decreasing = TRUE)
   # create a data frame with words and their frequencies
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
+  
+  ###########
+  senti_nrc <- get_sentiment(as.character(dm$word),method = "nrc")
+  nrc.lex <- get_nrc_sentiment(as.character(dm$word))
+  
+  barplot(
+    sort(colSums(prop.table(nrc.lex[, 1:8]))), 
+    horiz = TRUE, 
+    cex.names = 0.7, 
+    las = 1, 
+    main = "Emotions in tweets", xlab="Percentage"
+  )
+  
+  barplot(
+    sort(colSums(prop.table(nrc.lex[, 9:10]))), 
+    horiz = TRUE, 
+    cex.names = 0.7, 
+    las = 1, 
+    main = "Emotions in tweets", xlab="Percentage"
+  )
+  ###########
+  
   plot(dm$freq,type = "l")
   plot(density(dm$freq),type = "l")
   abline(v = mean(dm$freq), col = "red")

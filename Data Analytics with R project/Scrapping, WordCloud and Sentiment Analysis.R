@@ -247,8 +247,6 @@ generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10)
   wordcloud2(data = subset.dm)
 } 
 
-
-
 ##########################################################################
 # Get sentiments using the syuzhet package
 # currently using the sentiment libraries
@@ -270,7 +268,7 @@ generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10)
 #  lexicon.
 ##########################################################################
 
-getSentiments <- function(object.with.tweets){
+getSentiments.all <- function(object.with.tweets){
   
   # cleans the tweets and returns them as a dataframe
   df.tweets <- cleanTweets(object.with.tweets)
@@ -366,7 +364,36 @@ getSentiments <- function(object.with.tweets){
     horiz = TRUE, 
     cex.names = 0.7, 
     las = 1, 
-    main = "Ratio of positive to negative tweets", xlab="Percentage"
+    main = "Polarity in tweets", xlab="Percentage"
+  )
+}
+
+getSentiments.TF_IDF.nrc <- function(object.with.tweets){
+  
+  df.tweets <- cleanTweets(object.with.tweets)
+  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
+  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
+  m <- as.matrix(tdm)
+  
+  word_freqs <- sort(colSums(m), decreasing = TRUE)
+  dm <- data.frame(word = names(word_freqs), freq = word_freqs)
+  
+  nrc.lex <- get_nrc_sentiment(as.character(dm$word))
+  
+  barplot(
+    sort(colSums(prop.table(nrc.lex[, 1:8]))), 
+    horiz = TRUE, 
+    cex.names = 0.7, 
+    las = 1, 
+    main = "Emotions in tweets", xlab="Percentage"
+  )
+  
+  barplot(
+    sort(colSums(prop.table(nrc.lex[, 9:10]))), 
+    horiz = TRUE, 
+    cex.names = 0.7, 
+    las = 1, 
+    main = "Polarity in tweets", xlab="Percentage"
   )
 }
 
@@ -397,4 +424,4 @@ searchtweet <- return.object
 generateWordCloud.tmStopWords(searchtweet)
 generateWordCloud.TF_IDF(searchtweet)
 ## get sentiments
-getSentiments(searchtweet)
+getSentiments.all(searchtweet)
