@@ -95,13 +95,15 @@ getLatLong.zip <- function(enter.zipcode,radius.mi){
   lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
   lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi,"mi")
   detach(zipcode)
-  rm(list = c("zipcode"))
+  # the rm() does not work here as the scope here is limited to whithin this function
+  # zipcode is now placed in global variables list
+  # rm(list = c("zipcode"))
   return(lat.long.mi)
 }
 
 # To-Be-Implemented: handle error for mismatch in number of tweets
 searchThis <- function(search_string,geocode_string = "42.375,-71.1061111,1000mi",number.of.tweets = 100){
-  searchTwitter(search_string, geocode=geocode_string,n = number.of.tweets)
+  searchTwitter(search_string, geocode=geocode_string,n = number.of.tweets,lang = "en")
 }
 
 # Prompts the user to enter the username of the twitter handle
@@ -154,6 +156,7 @@ run.the.code <- function(){
     find.on.twitter <- getString()
     num <- getNumber()
     zip.code <- getZipCode()
+    rm(list = c("zipcode"))
     rad.mi <- getMiles()
     geocode.string <- getLatLong.zip(enter.zipcode = zip.code,radius.mi = rad.mi)
     # implementation fails, reason to be determined
@@ -161,7 +164,7 @@ run.the.code <- function(){
                       number.of.tweets = num,geocode_string = geocode.string)
     # falling back to original code
     # returns tweets as a list
-    #out <- searchThis(search_string = find.on.twitter,
+    # out <- searchThis(search_string = find.on.twitter,
     #                  number.of.tweets = num)
   } else if (choice == 2) {
     user.tl <- getUser()
@@ -212,9 +215,37 @@ generateWordCloud.tmStopWords <- function(object.with.tweets, minimum.frequency 
   # wordcloud(word, associated frequency, ordering, color palette)
   #wordcloud(dm$word, dm$freq, min.freq=minimum.frequency, random.order = FALSE, 
   #          colors = brewer.pal(11, "Spectral"))
-  wordcloud2(data = dm,minSize = 5)
+  wordcloud2(data = dm)
   #png(filename=plotfile1, width=740, height=740, units="px") # optional
 }
+
+generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10){
+  df.tweets <- cleanTweets(object.with.tweets)
+  
+  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
+  # Text_corpus is a collection of tweets where every tweet is a document
+  
+  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
+  Zipf_plot(tdm,type = "l",col="blue")
+  
+  # converting term document matrix to matrix
+  m <- as.matrix(tdm)
+  
+  word_freqs <- sort(colSums(m), decreasing = TRUE)
+  # create a data frame with words and their frequencies
+  
+  dm <- data.frame(word = names(word_freqs), freq = word_freqs)
+  plot(dm$freq,type = "l")
+  
+  plot(density(dm$freq),type = "l")
+  abline(v = mean(dm$freq), col = "red")
+  abline(v = mean(dm$freq) - 2*sd(dm$freq), col = "blue")
+  abline(v = mean(dm$freq) + 2*sd(dm$freq), col = "blue")
+  
+  subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
+  
+  wordcloud2(data = subset.dm)
+} 
 
 ##########################################################################
 # Get sentiments using the syuzhet package
@@ -362,5 +393,6 @@ return.object <- run.the.code()
 searchtweet <- return.object
 ## generate WordCloud
 generateWordCloud.tmStopWords(searchtweet)
+generateWordCloud.TF_IDF(searchtweet)
 ## get sentiments
 getSentiments(searchtweet)

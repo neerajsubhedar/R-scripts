@@ -2,7 +2,7 @@
   #df.tweets <- cleanTweets(object.with.tweets)
   df.tweets <- cleanTweets(object.with.tweets)
   # Creates a text corpus from the plain text document for every tweet
-  df.tweets$text_clean <- str_replace_all(df.tweets$text_clean,"[^[:graph:]]", " ")
+  #df.tweets$text_clean <- str_replace_all(df.tweets$text_clean,"[^[:graph:]]", " ")
   text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
   # Text_corpus is a collection of tweets where every tweet is a document
   
@@ -37,3 +37,4 @@
   #          colors = brewer.pal(11, "Spectral"))
   wordcloud2(data = subset.dm)
   #png(filename=plotfile1, width=740, height=740, units="px") # optional
+  
