@@ -220,6 +220,8 @@ generateWordCloud.tmStopWords <- function(object.with.tweets, minimum.frequency 
 }
 
 generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10){
+  ## TF-IDF word cloud
+  object.with.tweets <- return.object
   df.tweets <- cleanTweets(object.with.tweets)
   
   text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
@@ -237,14 +239,24 @@ generateWordCloud.TF_IDF <- function(object.with.tweets, minimum.frequency = 10)
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
   plot(dm$freq,type = "l")
   
-  plot(density(dm$freq),type = "l")
-  abline(v = mean(dm$freq), col = "red")
-  abline(v = mean(dm$freq) - 2*sd(dm$freq), col = "blue")
-  abline(v = mean(dm$freq) + 2*sd(dm$freq), col = "blue")
+  #plot(density(dm$freq),type = "l")
+  #abline(v = mean(dm$freq), col = "red")
+  #abline(v = mean(dm$freq) - 2*sd(dm$freq), col = "blue")
+  #abline(v = mean(dm$freq) + 2*sd(dm$freq), col = "blue")
   
   subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
   
-  wordcloud2(data = subset.dm)
+  tdm.word.freq <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
+                                                                 removeNumbers = TRUE,
+                                                                 tolower = TRUE))
+  
+  m.word.freq <- as.matrix(tdm.word.freq)
+  word_freqs.word.freq <- sort(colSums(m), decreasing = TRUE)
+  dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
+  
+  dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
+  
+  wordcloud2(data = dm.word.freq.new)
 } 
 
 ##########################################################################
@@ -272,77 +284,6 @@ getSentiments.all <- function(object.with.tweets){
   
   # cleans the tweets and returns them as a dataframe
   df.tweets <- cleanTweets(object.with.tweets)
-  
-  # Sentiments using the syuzhet NLP library
-  senti_syuzhet <- get_sentiment(df.tweets$text_clean,method = "syuzhet")
-  # Sentiments using the syuzhet BING library
-  senti_bing <- get_sentiment(df.tweets$text_clean,method = "bing")
-  # Sentiments using the syuzhet AFINN library
-  senti_afinn <- get_sentiment(df.tweets$text_clean,method = "afinn")
-  # Sentiments using the syuzhet NRC library
-  senti_nrc <- get_sentiment(df.tweets$text_clean,method = "nrc")
-  
-  # storing all sentiments to a single dataframe
-  sentiments_all <- cbind.data.frame(senti_syuzhet,senti_bing,
-                                     senti_afinn, senti_nrc)
-  
-  ## evaluate percent values after breaking tweets into chunks of 10 by number of tweets
-  percent_sentiments_all <- sapply(sentiments_all,get_percentage_values,bins=10)
-  
-  # 2x2 matrix to plot the graphs
-  opar = par()
-  par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
-  
-  # Plots for percent sentiment
-  plot(percent_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
-  plot(percent_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
-  plot(percent_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
-  plot(percent_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
-  
-  ## smoothing and normalization using fourier transformation and low pass filter
-  ft_vals_sentiments_all <- sapply(sentiments_all,get_transformed_values,
-                                   low_pass_size = 3, 
-                                   x_reverse_len = 100,
-                                   padding_factor = 2,
-                                   scale_vals = TRUE,
-                                   scale_range = FALSE)
-  
-  # 2x2 matrix to plot the graphs after smoothing and normalization using ft and low pass
-  opar = par()
-  par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
-  
-  # Plots for sentiments after smoothing using ft and low pass
-  plot(ft_vals_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
-  plot(ft_vals_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
-  plot(ft_vals_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
-  plot(ft_vals_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
-  
-  ## smoothing and normalization using Discrete cosine transform (DCT) and low pass filter
-  dct_vals_sentiments_all <- sapply(sentiments_all,get_dct_transform,
-                                    low_pass_size = 5, 
-                                    x_reverse_len = 100,
-                                    scale_vals = F,
-                                    scale_range = T)
-  
-  # 2x2 matrix to plot the graphs after smoothing and normalization using DCT and low pass filtering
-  opar = par()
-  par(bg = "white", mfrow = c(2,2), las = 2, col = "blue")
-  
-  # Plots for sentiments after smoothing using DCT and low pass
-  plot(dct_vals_sentiments_all[,"senti_bing"],type = "l",main = "bing sentiments")
-  plot(dct_vals_sentiments_all[,"senti_afinn"],type = "l",main = "afinn sentiments")
-  plot(dct_vals_sentiments_all[,"senti_nrc"],type = "l",main = "nrc sentiments")
-  plot(dct_vals_sentiments_all[,"senti_syuzhet"],type = "l",main = "syuzhet sentiments")
-  
-  ###############
-  # Simple plot
-  # 
-  ###############
-  
-  simple_plot(sentiments_all[,"senti_bing"],title = "bing sentiments")
-  simple_plot(sentiments_all[,"senti_afinn"],title = "afinn sentiments")
-  simple_plot(sentiments_all[,"senti_nrc"],title = "nrc sentiments")
-  simple_plot(sentiments_all[,"senti_syuzhet"],title = "syuzhet sentiments")
   
   ###########################################
   #Implementing Lexicons using NRC library
