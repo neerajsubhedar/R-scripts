@@ -211,11 +211,18 @@ generateWordCloud.tmStopWords <- function(object.with.tweets, minimum.frequency 
   # create a data frame with words and their frequencies
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
   
+  nrc.lexicons <- get_nrc_sentiment(dm$word)
+  
+  tweets.negative <- dm[nrc.lexicons$negative>0,]
+  tweets.positive <- dm[nrc.lexicons$positive>0,]
+  tweets.neutral <- dm[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
+  
   # creating word cloud
   # wordcloud(word, associated frequency, ordering, color palette)
   #wordcloud(dm$word, dm$freq, min.freq=minimum.frequency, random.order = FALSE, 
   #          colors = brewer.pal(11, "Spectral"))
-  wordcloud2(data = dm)
+  wordcloud2(data = tweets.positive)
+  wordcloud2(data = tweets.negative)
   #png(filename=plotfile1, width=740, height=740, units="px") # optional
 }
 
@@ -355,7 +362,7 @@ project.initialize()
 cat("\014")
 return.object <- run.the.code()
 
-##########################################################################
+#######################################s###################################
 # Building corpus from the tweets which we will use to build a wordcloud
 ##########################################################################
 
