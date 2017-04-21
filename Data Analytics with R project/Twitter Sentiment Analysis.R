@@ -94,7 +94,6 @@ getLatLong.zip <- function(enter.zipcode,radius.mi){
   radius.mi <- as.character(radius.mi)
   lat.long <- zipcode[zip == enter.zipcode,c("latitude","longitude")]
   lat.long.mi <- paste0(lat.long$latitude,",",lat.long$longitude,",",radius.mi,"mi")
-  detach(zipcode)
   # the rm() does not work here as the scope here is limited to whithin this function
   # zipcode is now placed in global variables list
   # rm(list = c("zipcode"))
@@ -141,6 +140,49 @@ cleanTweets <- function(object.with.tweets){
   return(df.tweets)
 }
 
+# Generate Term Document Matrix using stopword list from tm pacakge
+tdm.tmStopWord <- function(clean.tweets.dataframe){
+  # Creates a text corpus from the plain text document for every tweet
+  text_corpus <- Corpus(VectorSource(clean.tweets.dataframe$text_clean))
+  # Text_corpus is a collection of tweets where every tweet is a document
+  
+  # creating a Term Document Matrix 
+  tdm <- TermDocumentMatrix(
+    # the text corpus created from the text_clean object
+    text_corpus,
+    # defining the stopwords to be removed before creating a term document matrix
+    control = list(
+      removePunctuation = TRUE,
+      stopwords("en"),
+      removeNumbers = TRUE,
+      tolower = TRUE)
+  )
+  
+  return(tdm)
+}
+
+# Generate Term Document Matrix using TF-IDF
+tdm.TFIDF <- function(clean.tweets.dataframe){
+  
+  text_corpus <- Corpus(VectorSource(clean.tweets.dataframe$text_clean))
+  
+  # Text_corpus is a collection of tweets where every tweet is a document
+  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
+  
+  return(tdm)
+}
+
+# Generate Term Document Matrix without removing stopwords
+tdm.tm <- function(clean.tweets.dataframe){
+  
+  text_corpus <- Corpus(VectorSource(clean.tweets.dataframe$text_clean))
+  tdm <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
+                                                                 removeNumbers = TRUE,
+                                                                 tolower = TRUE))
+  
+  return(tdm)
+}
+
 #################################################################################
 # Function to run functions associated with user input and importing the tweets
 #################################################################################
@@ -181,29 +223,10 @@ run.the.code <- function(){
 # Generate wordcloud function
 ##############################
 
-generateWordCloud.positive.tmStopWords <- function(object.with.tweets){
-  
-  ## Cleans the tweets ans stores them as a dataframe
-  df.tweets <- cleanTweets(object.with.tweets)
-  
-  # Creates a text corpus from the plain text document for every tweet
-  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
-  # Text_corpus is a collection of tweets where every tweet is a document
-  
-  # creating a Term Document Matrix 
-  tdm <- TermDocumentMatrix(
-    # the text corpus created from the text_clean object
-    text_corpus,
-    # defining the stopwords to be removed before creating a term document matrix
-    control = list(
-      removePunctuation = TRUE,
-      stopwords("en"),
-      removeNumbers = TRUE,
-      tolower = TRUE)
-  )
+generateWordCloud.positive.tmStopWords <- function(tdm.tm.stopword){
   
   # converting term document matrix to matrix
-  m <- as.matrix(tdm)
+  m <- as.matrix(tdm.tm.stopword)
   
   # get word counts in decreasing order
   word_freqs <- sort(rowSums(m), decreasing = TRUE)
@@ -212,41 +235,16 @@ generateWordCloud.positive.tmStopWords <- function(object.with.tweets){
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm$word))
-  
-  #tweets.negative <- dm[nrc.lexicons$negative>0,]
   tweets.positive <- dm[nrc.lexicons$positive>0,]
-  #tweets.neutral <- dm[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
   
   fig.path.pos <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/positive.png"
-  #fig.path.neg <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/negative.png"
-  
   wordcloud2(data = tweets.positive, figPath = fig.path.pos,size = 1.5,gridSize = 3)
-  #wordcloud2(data = tweets.negative, figPath = fig.path.neg,size = 1.5,gridSize = 3)
 }
 
-generateWordCloud.negative.tmStopWords <- function(object.with.tweets){
-  
-  ## Cleans the tweets ans stores them as a dataframe
-  df.tweets <- cleanTweets(object.with.tweets)
-  
-  # Creates a text corpus from the plain text document for every tweet
-  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
-  # Text_corpus is a collection of tweets where every tweet is a document
-  
-  # creating a Term Document Matrix 
-  tdm <- TermDocumentMatrix(
-    # the text corpus created from the text_clean object
-    text_corpus,
-    # defining the stopwords to be removed before creating a term document matrix
-    control = list(
-      removePunctuation = TRUE,
-      stopwords("en"),
-      removeNumbers = TRUE,
-      tolower = TRUE)
-  )
+generateWordCloud.negative.tmStopWords <- function(tdm.tm.stopword){
   
   # converting term document matrix to matrix
-  m <- as.matrix(tdm)
+  m <- as.matrix(tdm.tm.stopword)
   
   # get word counts in decreasing order
   word_freqs <- sort(rowSums(m), decreasing = TRUE)
@@ -257,103 +255,62 @@ generateWordCloud.negative.tmStopWords <- function(object.with.tweets){
   nrc.lexicons <- get_nrc_sentiment(as.character(dm$word))
   
   tweets.negative <- dm[nrc.lexicons$negative>0,]
-  #tweets.positive <- dm[nrc.lexicons$positive>0,]
-  #tweets.neutral <- dm[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
   
-  #fig.path.pos <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/positive.png"
   fig.path.neg <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/negative.png"
-  
-  #wordcloud2(data = tweets.positive, figPath = fig.path.pos,size = 1.5,gridSize = 3)
   wordcloud2(data = tweets.negative, figPath = fig.path.neg,size = 1.5,gridSize = 3)
 }
 
-generateWordCloud.positive.TF_IDF <- function(object.with.tweets){
-  ## TF-IDF word cloud
-  object.with.tweets <- return.object
-  df.tweets <- cleanTweets(object.with.tweets)
-  
-  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
-  # Text_corpus is a collection of tweets where every tweet is a document
-  
-  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
-  Zipf_plot(tdm,type = "l",col="blue")
+generateWordCloud.positive.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
+  # Zipf's plot
+  Zipf_plot(tdm.tfidf,type = "l",col="blue")
   
   # converting term document matrix to matrix
-  m <- as.matrix(tdm)
+  m <- as.matrix(tdm.tfidf)
   
   word_freqs <- sort(colSums(m), decreasing = TRUE)
   # create a data frame with words and their frequencies
-  
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
   plot(dm$freq,type = "l")
-  
   subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
   
-  tdm.word.freq <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
-                                                                 removeNumbers = TRUE,
-                                                                 tolower = TRUE))
-  
-  m.word.freq <- as.matrix(tdm.word.freq)
+  ## creating term frequency dataframe
+  m.word.freq <- as.matrix(tdm.tm.nostop)
   word_freqs.word.freq <- sort(colSums(m), decreasing = TRUE)
   dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
   
   dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm.word.freq.new$word))
-  
-  #tweets.negative <- dm.word.freq.new[nrc.lexicons$negative>0,]
   tweets.positive <- dm.word.freq.new[nrc.lexicons$positive>0,]
-  #tweets.neutral <- dm.word.freq.new[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
   
   fig.path.pos <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/positive.png"
-  #fig.path.neg <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/negative.png"
-  
   wordcloud2(data = tweets.positive, figPath = fig.path.pos,size = 1.5,gridSize = 3)
-  #wordcloud2(data = tweets.negative, figPath = fig.path.neg,size = 1.5,gridSize = 3)
 }
 
-generateWordCloud.negative.TF_IDF <- function(object.with.tweets){
-  ## TF-IDF word cloud
-  object.with.tweets <- return.object
-  df.tweets <- cleanTweets(object.with.tweets)
-  
-  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
-  # Text_corpus is a collection of tweets where every tweet is a document
-  
-  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
-  Zipf_plot(tdm,type = "l",col="blue")
+generateWordCloud.negative.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
+  # Zipf's plot
+  Zipf_plot(tdm.tfidf,type = "l",col="blue")
   
   # converting term document matrix to matrix
-  m <- as.matrix(tdm)
+  m <- as.matrix(tdm.tfidf)
   
   word_freqs <- sort(colSums(m), decreasing = TRUE)
   # create a data frame with words and their frequencies
-  
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
   plot(dm$freq,type = "l")
-  
   subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
   
-  tdm.word.freq <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
-                                                                 removeNumbers = TRUE,
-                                                                 tolower = TRUE))
-  
-  m.word.freq <- as.matrix(tdm.word.freq)
+  ## creating term frequency dataframe
+  m.word.freq <- as.matrix(tdm.tm.nostop)
   word_freqs.word.freq <- sort(colSums(m), decreasing = TRUE)
   dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
   
   dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm.word.freq.new$word))
-  
   tweets.negative <- dm.word.freq.new[nrc.lexicons$negative>0,]
-  #tweets.positive <- dm.word.freq.new[nrc.lexicons$positive>0,]
-  #tweets.neutral <- dm.word.freq.new[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
   
-  #fig.path.pos <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/positive.png"
   fig.path.neg <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/negative.png"
-  
-  #wordcloud2(data = tweets.positive, figPath = fig.path.pos,size = 1.5,gridSize = 3)
   wordcloud2(data = tweets.negative, figPath = fig.path.neg,size = 1.5,gridSize = 3)
 }
 
@@ -378,15 +335,12 @@ generateWordCloud.negative.TF_IDF <- function(object.with.tweets){
 #  lexicon.
 ##########################################################################
 
-getSentiments.all <- function(object.with.tweets){
-  
-  # cleans the tweets and returns them as a dataframe
-  df.tweets <- cleanTweets(object.with.tweets)
+getSentiments.all <- function(clean.tweets.df){
   
   ###########################################
   #Implementing Lexicons using NRC library
   ###########################################
-  nrc.lexicons <- get_nrc_sentiment(df.tweets$text_clean)
+  nrc.lexicons <- get_nrc_sentiment(clean.tweets.df$text_clean)
   
   # Barplot for emotions
   barplot(
@@ -407,12 +361,9 @@ getSentiments.all <- function(object.with.tweets){
   )
 }
 
-getSentiments.TF_IDF.nrc <- function(object.with.tweets){
+getSentiments.TF_IDF.nrc <- function(tdm.tfidf){
   
-  df.tweets <- cleanTweets(object.with.tweets)
-  text_corpus <- Corpus(VectorSource(df.tweets$text_clean))
-  tdm <- DocumentTermMatrix(text_corpus, control = list(weighting = weightTfIdf))
-  m <- as.matrix(tdm)
+  m <- as.matrix(tdm.tfidf)
   
   word_freqs <- sort(colSums(m), decreasing = TRUE)
   dm <- data.frame(word = names(word_freqs), freq = word_freqs)
@@ -459,11 +410,19 @@ return.object <- run.the.code()
 
 ## creating a copy of the tweets object
 searchtweet <- return.object
-## generate WordCloud
-generateWordCloud.positive.tmStopWords(searchtweet)
-generateWordCloud.negative.tmStopWords(searchtweet)
-generateWordCloud.positive.TF_IDF(searchtweet)
-generateWordCloud.negative.TF_IDF(searchtweet)
-## get sentiments
-getSentiments.all(searchtweet)
-getSentiments.TF_IDF.nrc(searchtweet)
+searchtweet.clean <- cleanTweets(searchtweet)
+
+## Generate Term Document Matrix
+searchtweet.tdm.tm.stopword <- tdm.tmStopWord(searchtweet.clean)
+searchtweet.tdm.tfidf <- tdm.TFIDF(searchtweet.clean)
+searchtweet.tdm.tm <- tdm.tm(searchtweet.clean)
+
+## Generate wordcloud
+generateWordCloud.positive.tmStopWords(searchtweet.tdm.tm.stopword)
+generateWordCloud.negative.tmStopWords(searchtweet.tdm.tm.stopword)
+generateWordCloud.positive.TF_IDF(searchtweet.tdm.tfidf,searchtweet.tdm.tm)
+generateWordCloud.negative.TF_IDF(searchtweet.tdm.tfidf,searchtweet.tdm.tm)
+
+# Get sentiment
+getSentiments.all(searchtweet.clean)
+getSentiments.TF_IDF.nrc(searchtweet.tdm.tfidf)
