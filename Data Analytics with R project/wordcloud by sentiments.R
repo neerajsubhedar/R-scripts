@@ -34,11 +34,10 @@ tweets.negative <- dm[nrc.lexicons$negative>0,]
 tweets.positive <- dm[nrc.lexicons$positive>0,]
 tweets.neutral <- dm[nrc.lexicons$negative==0 & nrc.lexicons$positive==0,]
 
-# creating word cloud
-# wordcloud(word, associated frequency, ordering, color palette)
-#wordcloud(dm$word, dm$freq, min.freq=minimum.frequency, random.order = FALSE, 
-#          colors = brewer.pal(11, "Spectral"))
-figPath <- system.file("positive.png",package = "wordcloud2")
+#fig.path1 <- base::system.file("examples/positive.png",package = "wordcloud2")
+#fig.path2 <- base::system.file("examples/negative.png",package = "wordcloud2")
+fig.path.pos <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/positive.png"
+fig.path.neg <- "C:/Users/NeerajSubhedar/Documents/GitHub/R-scripts/Data Analytics with R project/negative.png"
 
-wordcloud2(data = tweets.positive,figPath = figPath)
-wordcloud2(data = tweets.negative)
+wordcloud2(data = tweets.positive, figPath = fig.path.pos,size = 1.5,gridSize = 3)
+wordcloud2(data = tweets.negative, figPath = fig.path.neg,size = 1.5,gridSize = 3)
