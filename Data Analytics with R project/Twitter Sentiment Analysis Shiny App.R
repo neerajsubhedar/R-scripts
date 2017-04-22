@@ -1,21 +1,17 @@
-#############################################
+############################################
 # Initialize the project
 # Installs packages and loads libraries
 # Sets up the twitter authentication
 # NOTE: initialize and install the libraries
 #############################################
 
-project.initialize <- function(){
-  ## clear console
-  cat("\014")
-  ## clear global variables
-  rm(list=ls())
-  
+projectInitiate = function(){
+  rm(list = ls())
   ## list of packages required
   list.of.packages <- c("git2r","digest","devtools",
                         "RCurl","RJSONIO","stringr","syuzhet","httr",
-                        "rjson","tm","NLP","RCurl","wordcloud",
-                        "tidytext","dplyr","zipcode","bit","wordcloud2")
+                        "rjson","tm","NLP","RCurl","wordcloud","wordcloud2",
+                        "tidytext","dplyr","zipcode","bit", "shiny")
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
@@ -36,7 +32,7 @@ project.initialize <- function(){
   
   ## Linked to generating a wordcloud
   library(tm);library(NLP);library(RCurl);library(RJSONIO)
-  library(stringr);library(wordcloud);library(wordcloud2)
+  library(stringr);library(wordcloud);library(wordcloud2); library(shiny)
   
   ## Linked to sentiment analysis
   library(syuzhet)
@@ -46,6 +42,8 @@ project.initialize <- function(){
                                consumer_secret = "kY4CgL7SdnYtkLqobAqMqDBNc7ASJ2Ks7rTLG4HhLbH7tUBfIv",
                                access_token = "75229041-KfJBkGaKgZCSLWSF1kuQbsAZHjBS4bGyntg7tTzbE",
                                access_secret = "M63vL0YGCQ8HGzYJEy5wccAtKq3aBOEloxl1hZXYXCSQj")
+  
+  cat("\014")
 }
 
 #############################
@@ -177,20 +175,10 @@ tdm.tm <- function(clean.tweets.dataframe){
   
   text_corpus <- Corpus(VectorSource(clean.tweets.dataframe$text_clean))
   tdm <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
-                                                                 removeNumbers = TRUE,
-                                                                 tolower = TRUE))
-  
-  return(tdm)
-}
-
-# Generate Raw Term Document Matrix
-tdm.raw <- function(tweets){
-  tweets.df <- twListToDF(tweets)
-  tweets.df$text <- str_replace_all(tweets.df$text,"[^[:graph:]]", " ")
-  text_corpus <- Corpus(VectorSource(tweets.df$text))
-  tdm <- TermDocumentMatrix(text_corpus,control = list(removePunctuation = TRUE,
                                                        removeNumbers = TRUE,
                                                        tolower = TRUE))
+  
+  return(tdm)
 }
 
 #################################################################################
@@ -272,7 +260,7 @@ generateWordCloud.negative.tmStopWords <- function(tdm.tm.stopword){
 
 generateWordCloud.positive.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
   # Zipf's plot
-  # Zipf_plot(tdm.tfidf,type = "l",col="blue")
+  Zipf_plot(tdm.tfidf,type = "l",col="blue")
   
   # converting term document matrix to matrix
   m <- as.matrix(tdm.tfidf)
@@ -288,7 +276,6 @@ generateWordCloud.positive.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
   word_freqs.word.freq <- sort(colSums(m), decreasing = TRUE)
   dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
   
-  ## subsetting the tdm 
   dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm.word.freq.new$word))
@@ -398,45 +385,255 @@ getSentiments.TF_IDF.nrc <- function(tdm.tfidf){
   )
 }
 
-##################
-# Executable Part
-##################
+##################################### Functions End Here #####################################
 
-## clears the console
-cat("\014")
-## Runs the entire code with following steps:
-# 1. Initializes the twitter authentication
-# 2. Prompts the user to select to choose the means of importing the tweets
-# 3. Gets input for search string or twitter username  and number of tweets to import
-# 4. returns the tweets as a list
-# 5. stores the list of tweets to return.object
-project.initialize()
-# Modify memory size
-options(java.parameters = "-Xmx10g" )
-## clears the console
-cat("\014")
-return.object <- run.the.code()
+######
+# UI
+######
 
-##########################################################################
-# Building corpus from the tweets which we will use to build a wordcloud
-##########################################################################
+ui <- fluidPage(
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "bootstrap.css")
+  ),
+  #theme = "bootstrap.css",
+  headerPanel(
+    h3("Sentiment Analysis by abs(R)"
+       # style = "font-family: 'Lobster', cursive;
+       # font-weight: 500; line-height: 1.1; 
+       # color: #4d3a7d;")
+    )),
+  sidebarLayout(
+    sidebarPanel(img(src="uconn.png",height=72,width=72),
+                 radioButtons("typeInput", "Choose an Input type for twitter search:",
+                              list("Search by hashtag and location" = "hashtag", "Search by Twitter username"= "username")),
+                 sliderInput("numberInput", "Number of tweets", min = 0, max = 3000, value = 100,animate = TRUE),
+                 
+                 #Only show this panel if the Input Type is "search by hashtag and location"    
+                 
+                 conditionalPanel(
+                   condition = "input.typeInput == 'hashtag'",
+                   textInput("hashtagInput", "Hashtag","Uber"),
+                   textInput("zipInput", "Enter zipcode (should be between 00210 and 99950)", "06105"),
+                   textInput("radiusInput", "Enter the radius (miles)","100")),
+                 
+                 #Only show this panel if the Input Type is "search by Twitter username"
+                 conditionalPanel(
+                   condition = "input.typeInput == 'username'",
+                   textInput("usernameInput", "Username", "AnkitRB")),
+                 
+                 actionButton("goButton", "Go!", icon("twitter"), style="color: #fff; background-color: #337ab7"),
+                 h6("Click to update the output")
+                 
+                 ,width = 3),
+    mainPanel(
+      # dividing the main panel into multiple tabs
+      tabsetPanel(
+        tabPanel("Sentiment Plots", plotOutput("senti")),
+        tabPanel("Sentiments Plots TFIDF", plotOutput("senti3")),
+        tabPanel("Polarity Plots", plotOutput("senti1")),
+        tabPanel("Polarity Plots TFIDF", plotOutput("senti4")),
+        tabPanel("Word Cloud", wordcloud2Output("wordCloud")), #,width = "100%", height = "400px")
+        tabPanel("Tweets", dataTableOutput("tweetTable"))
+        
+        #plotOutput("senti"), plotOutput("senti1")) #,plotOutput("wordCloud"))
+      ))
+  )
+)
 
-## creating a copy of the tweets object
-searchtweet <- return.object
-searchtweet.clean <- cleanTweets(searchtweet)
+server <- function(input, output)
+{
+  data1 = eventReactive(input$goButton, {
+    
+    if (input$typeInput == "Search Term") 
+    {
+      
+      geocode.string <- getLatLong.zip(enter.zipcode = input$zipInput,radius.mi = input$radiusInput)
+      
+      return.object <- searchThis(search_string = input$hashtagInput,
+                                  number.of.tweets = input$numberInput, geocode_string = geocode.string)
+      
+    } 
+    
+    else if (input$typeInput == "Twitter Handle") 
+    {
+      return.object <- userTL(user.name = input$usernameInput,number.of.tweets = input$numberInput)
+    }
+    
+    else {}
+    
+    df.tweets <- cleanTweets(return.object)
+    nrc.lexicons <- get_nrc_sentiment(df.tweets$text_clean)
+    
+  })
+  
+  output$senti = renderPlot({   
+    # Barplot for emotions
+    barplot(
+      sort(colSums(prop.table(data1()[, 1:8]))), 
+      horiz = TRUE, 
+      cex.names = 0.76, 
+      las = 1, 
+      main = "Emotions in tweets", xlab="Percentage",width = 1,xlim = c(0,1)
+    )
+  })  
+  
+  output$senti1 = renderPlot({ 
+    # Barplot for positive vs negative
+    barplot(
+      sort(colSums(prop.table(data1()[, 9:10]))), 
+      horiz = TRUE, 
+      cex.names = 0.76, 
+      las = 1, 
+      main = "Ratio of positive to negative tweets", xlab="Percentage"
+    )
+    
+  })
+  
+  data2 = eventReactive(input$goButton, {
+    
+    if (input$typeInput == "Search Term") 
+    {
+      
+      geocode.string <- getLatLong.zip(enter.zipcode = input$zipInput,radius.mi = input$radiusInput)
+      
+      return.object <- searchThis(search_string = input$hashtagInput,
+                                  number.of.tweets = input$numberInput, geocode_string = geocode.string)
+      
+    } 
+    
+    else if (input$typeInput == "Twitter Handle") 
+    {
+      return.object <- userTL(user.name = input$usernameInput,number.of.tweets = input$numberInput)
+    }
+    
+    else {}
+    
+    searchtweet.clean <- cleanTweets(return.object)
+    searchtweet.tdm.tfidf = tdm.TFIDF(searchtweet.clean)
+    
+    m <- as.matrix(searchtweet.tdm.tfidf)
+    
+    word_freqs <- sort(colSums(m), decreasing = TRUE)
+    dm <- data.frame(word = names(word_freqs), freq = word_freqs)
+    subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
+    nrc.lex <- get_nrc_sentiment(as.character(subset.dm$word))
+    
+  })
+  
+  output$senti3 = renderPlot({
+    barplot(
+      sort(colSums(prop.table(data2()[, 1:8]))), 
+      horiz = TRUE, 
+      cex.names = 0.7, 
+      las = 1, 
+      main = "Emotions in tweets", xlab="Percentage"
+    )
+  })
+  
+  output$senti4 = renderPlot({
+    barplot(
+      sort(colSums(prop.table(data2()[, 9:10]))), 
+      horiz = TRUE, 
+      cex.names = 0.7, 
+      las = 1, 
+      main = "Polarity in tweets", xlab="Percentage"
+    )
+  })
+  
+  data3 = eventReactive(input$goButton, {
+    
+    if (input$typeInput == "Search Term") 
+    {
+      
+      geocode.string <- getLatLong.zip(enter.zipcode = input$zipInput,radius.mi = input$radiusInput)
+      
+      return.object <- searchThis(search_string = input$hashtagInput,
+                                 number.of.tweets = input$numberInput, geocode_string = geocode.string)
+      
+    } 
+    
+    else if (input$typeInput == "Twitter Handle") 
+    {
+      userTL <- function(user.name,number.of.tweets = 100)
+      {
+        userTimeline(user.name,n = number.of.tweets)
+      }
+      
+      return.object <- userTL(user.name = input$usernameInput,number.of.tweets = input$numberInput)
+    }
+    
+    else {}
+    
+    
+    df.tweets <- cleanTweets(return.object)
+    
+    Encoding(df.tweets$text_clean) = "latin1"
+    iconv(df.tweets$text_clean, "latin1", "ASCII", sub = "")
+    
+    ## tocheck whether this works
+    tdm <- tdm.tmStopWord(df.tweets)
+    
+    # converting term document matrix to matrix
+    m <- as.matrix(tdm)
+    
+    # get word counts in decreasing order
+    word_freqs <- sort(rowSums(m), decreasing = TRUE)
+    
+    # create a data frame with words and their frequencies
+    dm <- data.frame(word = names(word_freqs), freq = word_freqs)
+    
+  })
+  
+  output$wordCloud = renderWordcloud2(wordcloud2(data = data3(), size = 1))
+  
+  data4 = eventReactive(input$goButton, {
+    
+    if (input$typeInput == "hashtag") 
+    {
+      
+      geocode.string <- getLatLong.zip(enter.zipcode = input$zipInput,radius.mi = input$radiusInput)
+      
+      run.the.code <- searchThis(search_string = input$hashtagInput,
+                                 number.of.tweets = input$numberInput, geocode_string = geocode.string)
+      
+    } 
+    
+    else if (input$typeInput == "username") 
+    {
+      run.the.code <- userTL(user.name = input$usernameInput,number.of.tweets = input$numberInput)
+    }
+    
+    else {}
+    
+    #Converting the Tweets into data frame
+    df.tweets <- twListToDF(run.the.code)
+    
+    #only displaying Text, Created, Screen Name, RT count, and Location
+    df.tweets = df.tweets[,c(1,3,5,11,12,17)]
+    
+  })
+  
+  #Render Tweets
+  
+  output$tweetTable = renderDataTable({data4()}, options = list(lengthMenu = c(5, 30, 50), pageLength = 5))
+  
+  ####### Adding code of displaying loading symbol################# 
+  #################################################################
+  # Link - https://github.com/rstudio/shiny-examples/commit/3781420d4b67c7d35153eb8dd3bcb36785d5bd2a?diff=split
+  # f1 = function(input, output, session) {
+  #   # Define a reactive expression for the document term matrix
+  #   terms <- reactive({
+  #     # Change when the "update" button is pressed...
+  #     input$update
+  #     # ...but not for anything else
+  #     isolate({
+  #       -      withProgress(session, {
+  #         +      withProgress({
+  #           setProgress(message = "Processing corpus...")
+  #           getTermMatrix(input$selection)
+  #         })
+  # 
+  
+}
 
-## Generate Term Document Matrix
-searchtweet.tdm.tm.stopword <- tdm.tmStopWord(searchtweet.clean)
-searchtweet.tdm.tfidf <- tdm.TFIDF(searchtweet.clean)
-searchtweet.tdm.tm <- tdm.tm(searchtweet.clean)
-searchtweet.tdm.raw <- tdm.raw(searchtweet)
-
-## Generate wordcloud
-generateWordCloud.positive.tmStopWords(searchtweet.tdm.tm.stopword)
-generateWordCloud.negative.tmStopWords(searchtweet.tdm.tm.stopword)
-generateWordCloud.positive.TF_IDF(searchtweet.tdm.tfidf,searchtweet.tdm.tm)
-generateWordCloud.negative.TF_IDF(searchtweet.tdm.tfidf,searchtweet.tdm.tm)
-
-# Get sentiment
-getSentiments.all(searchtweet.clean)
-getSentiments.TF_IDF.nrc(searchtweet.tdm.tfidf)
+shinyApp(ui, server)
