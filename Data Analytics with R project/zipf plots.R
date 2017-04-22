@@ -74,3 +74,5 @@ points(x = 1:nrow(dm4),y=dm4$freq,type = "l",col = "green")
 points(x = 1:nrow(dm3),y=dm3$freq,type = "l",col = "gray")
 points(x = 1:nrow(dm2),y=dm2$freq,type = "l",col = "magenta")
 points(x = 1:nrow(dm1),y=dm1$freq,type = "l",col = "cyan")
+
+Zipf_plot(searchtweet.tdm.tfidf1)

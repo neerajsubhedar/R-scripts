@@ -277,11 +277,11 @@ generateWordCloud.positive.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
   # converting term document matrix to matrix
   m <- as.matrix(tdm.tfidf)
   
-  word_freqs <- sort(colSums(m), decreasing = TRUE)
+  word_tfidf <- sort(colSums(m), decreasing = TRUE)
   # create a data frame with words and their frequencies
-  dm <- data.frame(word = names(word_freqs), freq = word_freqs)
-  plot(dm$freq,type = "l")
-  subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
+  dm <- data.frame(word = names(word_tfidf), tfidf = word_tfidf)
+  #plot(dm$freq,type = "l")
+  dm.subset <- dm[dm$tfidf>=quantile(dm$tfidf,0.25),]
   
   ## creating term frequency dataframe
   m.word.freq <- as.matrix(tdm.tm.nostop)
@@ -289,7 +289,7 @@ generateWordCloud.positive.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
   dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
   
   ## subsetting the tdm 
-  dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
+  dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% dm.subset$word,]
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm.word.freq.new$word))
   tweets.positive <- dm.word.freq.new[nrc.lexicons$positive>0,]
@@ -305,18 +305,19 @@ generateWordCloud.negative.TF_IDF <- function(tdm.tfidf, tdm.tm.nostop){
   # converting term document matrix to matrix
   m <- as.matrix(tdm.tfidf)
   
-  word_freqs <- sort(colSums(m), decreasing = TRUE)
+  word_tfidf <- sort(colSums(m), decreasing = TRUE)
   # create a data frame with words and their frequencies
-  dm <- data.frame(word = names(word_freqs), freq = word_freqs)
-  plot(dm$freq,type = "l")
-  subset.dm <- dm[dm$freq<=mean(dm$freq) + 2*sd(dm$freq) & dm$freq>=mean(dm$freq) - 2*sd(dm$freq),]
+  dm <- data.frame(word = names(word_tfidf), tfidf = word_tfidf)
+  #plot(dm$freq,type = "l")
+  dm.subset <- dm[dm$tfidf>=quantile(dm$tfidf,0.25),]
   
   ## creating term frequency dataframe
   m.word.freq <- as.matrix(tdm.tm.nostop)
   word_freqs.word.freq <- sort(colSums(m), decreasing = TRUE)
   dm.word.freq <- data.frame(word = names(word_freqs.word.freq), freq = word_freqs.word.freq)
   
-  dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% subset.dm$word,]
+  ## subsetting the tdm 
+  dm.word.freq.new <- dm.word.freq[dm.word.freq$word %in% dm.subset$word,]
   
   nrc.lexicons <- get_nrc_sentiment(as.character(dm.word.freq.new$word))
   tweets.negative <- dm.word.freq.new[nrc.lexicons$negative>0,]
@@ -376,10 +377,10 @@ getSentiments.TF_IDF.nrc <- function(tdm.tfidf){
   
   m <- as.matrix(tdm.tfidf)
   
-  word_freqs <- sort(colSums(m), decreasing = TRUE)
-  dm <- data.frame(word = names(word_freqs), freq = word_freqs)
-  
-  nrc.lex <- get_nrc_sentiment(as.character(dm$word))
+  word_tfidf <- sort(colSums(m), decreasing = TRUE)
+  dm <- data.frame(word = names(word_tfidf), tfidf = word_tfidf)
+  dm.subset <- dm[dm$tfidf>=quantile(dm$tfidf,0.25),]
+  nrc.lex <- get_nrc_sentiment(as.character(dm.subset$word))
   
   barplot(
     sort(colSums(prop.table(nrc.lex[, 1:8]))), 
