@@ -162,7 +162,37 @@ preds.lm.model1 <- exp(predict(object = lm.model1, newdata = testdata.without.NA
 #######################
 sum(is.na(preds.glm.gaussian.model2))
 plot(density(preds.glm.gaussian.model2,na.rm = T))
-preds.glm.gaussian.model2[is.na(preds.glm.gaussian.model2)] <- mean(preds.glm.gaussian.model2,na.rm = T)
+preds.glm.gaussian.model2[is.na(preds.glm.gaussian.model2)] <- 0
 submission.glm.gaussion.model2 <- cbind.data.frame(id = test.srhm$id,
                                                    price_doc = exp(preds.glm.gaussian.model2))
 write.csv(x = submission.glm.gaussion.model2,paste0(dir.kaggle.srhm,"/submissions/submission2.csv"),row.names = FALSE)
+
+######################
+# RMSLE ~ 0.33
+######################
+
+ref.file <- read.csv(paste0(dir.kaggle.srhm,"/files/submission.csv"))
+
+# Validating the fit with rmsle
+antilog.target <- exp(preds.glm.gaussian.model2)
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(antilog.target[i] + 1) - 
+               log(ref.file$price_doc[i] + 1))^2
+}
+
+rmsle.submission1 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.submission1 # 0.6265348
+
+# Validating the fit with rmsle
+antilog.target <- exp(preds.glm.gaussian.model2)
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(antilog.target[i] + 1) - 
+               log(ref.file$price_doc[i] + 1))^2
+}
+
+rmsle.submission2 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.submission2 # 0.6265348
