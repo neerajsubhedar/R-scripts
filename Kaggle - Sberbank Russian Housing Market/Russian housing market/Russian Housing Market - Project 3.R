@@ -94,7 +94,7 @@ for (i in c(1,3:length(missing.means))){
   macro.merge.srhm.new[is.na(macro.merge.srhm.new[,names(missing.means[i])]),names(missing.means[i])] <- missing.means[i]
 }
 
-## Modeling
+## Modeling GLM Model 3
 new.data <- macro.merge.srhm.new[,-c(1,2)]
 traindata <- new.data[new.data$type == "train",]
 traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
@@ -130,3 +130,6 @@ preds.glm.gaussian.model3 <- predict(object = glm.gaussian.model3, newdata = tes
 ## File
 submission3 <- cbind.data.frame(id=test.srhm$id,price_doc = exp(preds.glm.gaussian.model3))
 write.csv(submission3,paste0(dir.kaggle.srhm,"/submissions/submission3.csv"),row.names = F)
+
+## Modeling GLM Model 4
+col.with.signif <- names(!(is.na(glm.gaussian.model3$coefficients)))
