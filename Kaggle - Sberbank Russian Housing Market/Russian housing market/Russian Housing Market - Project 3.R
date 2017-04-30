@@ -93,3 +93,40 @@ missing.means <- sapply(macro.merge.srhm.new[,(colnames(macro.merge.srhm.new) %i
 for (i in c(1,3:length(missing.means))){
   macro.merge.srhm.new[is.na(macro.merge.srhm.new[,names(missing.means[i])]),names(missing.means[i])] <- missing.means[i]
 }
+
+## Modeling
+new.data <- macro.merge.srhm.new[,-c(1,2)]
+traindata <- new.data[new.data$type == "train",]
+traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
+testdata <- new.data[new.data$type == "test",]
+testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
+
+# glm gaussian family
+glm.gaussian.model3 <- glm(formula = I(log(price_doc))~.,family = gaussian,data = traindata)
+
+summary(glm.gaussian.model3)
+par(mfrow = c(2,2))
+plot(glm.gaussian.model3)
+
+## RMSLE
+antilog.target <- exp(glm.gaussian.model3$fitted.values)
+
+# Validating the fit with rmsle
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(antilog.target[i] + 1) - 
+               log(traindata$price_doc[i] + 1))^2
+}
+
+rmsle.glm.gaussian.model3 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.glm.gaussian.model3 # 0.5127848
+## RMSLE ends
+
+## Prediction
+## rebuilding the model after removing product_type column
+preds.glm.gaussian.model3 <- predict(object = glm.gaussian.model3, newdata = testdata)
+
+## File
+submission3 <- cbind.data.frame(id=test.srhm$id,price_doc = exp(preds.glm.gaussian.model3))
+write.csv(submission3,paste0(dir.kaggle.srhm,"/submissions/submission3.csv"),row.names = F)
