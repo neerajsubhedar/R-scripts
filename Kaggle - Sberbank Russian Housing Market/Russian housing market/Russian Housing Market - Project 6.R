@@ -1,7 +1,8 @@
 ## With macro file
 ## Imputing all
 ## merge all
-## 4/29/2017
+## 5/1/2017
+## GLMNET - regularization
 
 # Clear workspace and environment
 cat("\014")
@@ -45,6 +46,7 @@ library(Metrics) # rmsle
 library(e1071)
 library(car) # boxtidwell
 library(data.table) #merge
+library(glmnet)
 
 # Directory
 dir.kaggle.srhm <- file.path("C:","Users","NeerajSubhedar","Google Drive","Kaggle","Sberbank Russian Housing Market")
@@ -66,7 +68,7 @@ macro.merge.srhm <-merge(x = merge.srhm,y = macro.srhm,by = "timestamp",all.x = 
 results.missing <- Missing(macro.merge.srhm)
 
 ## number of columns with missing values
-sum(results.missing$`# Missing Values`!=0)
+#sum(results.missing$`# Missing Values`!=0)
 
 ## Column Index
 col.index.na.all <- as.integer(row.names(results.missing[results.missing$`# Missing Values`!=0,]))
@@ -76,7 +78,7 @@ col.index.na.less.than.ten.percent <- col.index.na.all[!(col.index.na.all %in% c
 col.name.na.all <- as.character(results.missing[results.missing$`# Missing Values`!=0,"Column Name"])
 col.name.na.more.than.ten.percent <- as.character(results.missing[(results.missing$`# Missing Values`/nrow(macro.merge.srhm))>0.1,"Column Name"])
 col.name.na.less.than.ten.percent <- col.name.na.all[!(col.name.na.all %in% col.name.na.more.than.ten.percent)]
-  
+
 ## Variable Selection
 # removing variables large amount of missing values
 macro.merge.srhm.new <- macro.merge.srhm[,!(colnames(macro.merge.srhm) %in% col.name.na.more.than.ten.percent)]
@@ -94,46 +96,39 @@ for (i in c(1,3:length(missing.means))){
   macro.merge.srhm.new[is.na(macro.merge.srhm.new[,names(missing.means[i])]),names(missing.means[i])] <- missing.means[i]
 }
 
-## Modeling GLM Model 3
+## Modeling glmnet
 new.data <- macro.merge.srhm.new[,-c(1,2)]
-traindata <- new.data[new.data$type == "train",]
-traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
-testdata <- new.data[new.data$type == "test",]
-testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
 
-# glm gaussian family
-glm.gaussian.model3 <- glm(formula = I(log(price_doc))~.,family = gaussian,data = traindata,)
+numerics <- sapply(new.data,is.numeric)
+integers <-  sapply(new.data,is.integer)
 
-summary(glm.gaussian.model3)
-par(mfrow = c(2,2))
-plot(glm.gaussian.model3)
+new.data.encoding <- new.data
+col.names.encoding <- colnames(new.data.encoding[,!(numerics|integers) & !(colnames(new.data.encoding) %in% c("type"))])
 
-## RMSLE
-antilog.target <- exp(glm.gaussian.model3$fitted.values)
-
-# Validating the fit with rmsle
-val <- 0
-n <- length(traindata$price_doc)
-for (i in 1:n){
-  val[i] <- (log(antilog.target[i] + 1) - 
-               log(traindata$price_doc[i] + 1))^2
+for (i in col.names.encoding){
+  new.data.encoding[,i] <- as.numeric(new.data.encoding[,i])
 }
 
-rmsle.glm.gaussian.model3 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.glm.gaussian.model3 # 0.5127848
-## RMSLE ends
+traindata <- new.data.encoding[new.data.encoding$type == "train",]
+traindata <- traindata[,!(colnames(traindata) %in% c("type"))]
+testdata <- new.data.encoding[new.data.encoding$type == "test",]
+testdata <- testdata[,!(colnames(testdata) %in% c("type"))]
 
-## Prediction
-## rebuilding the model after removing product_type column
-preds.glm.gaussian.model3 <- predict(object = glm.gaussian.model3, newdata = testdata)
+## input to glmnet function
+target.train <- log(traindata$price_doc)
+predictors.train <- traindata[,!(colnames(traindata) %in% c("price_doc"))]
 
-## File
-submission3 <- cbind.data.frame(id=test.srhm$id,price_doc = exp(preds.glm.gaussian.model3))
-write.csv(submission3,paste0(dir.kaggle.srhm,"/submissions/submission3.csv"),row.names = F)
+## Implementation
+glmnet.model1 <- glmnet(x = as.matrix(predictors.train),y = as.matrix(target.train),family = "gaussian")
 
-## Modeling GLM Model 4
-col.with.signif <- names(!(is.na(glm.gaussian.model3$coefficients)))
+summary(glmnet.model1)
+plot(glmnet.model1)
 
-############################
-#
-############################
+## Predict
+predictors.test <- testdata[,!(colnames(testdata) %in% c("price_doc"))]
+preds.glmnet.model1 <- as.data.frame(predict.glmnet(glmnet.model1,newx = as.matrix(predictors.test)))
+
+preds.antilog <- 0
+for (i in colnames(preds.glmnet.model1)){
+  preds.antilog[i] <- exp(preds.glmnet.model1[,i])
+}
