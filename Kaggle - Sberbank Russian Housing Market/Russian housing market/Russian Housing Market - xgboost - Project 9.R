@@ -49,6 +49,7 @@ library(data.table) #merge
 library(MissMech) #for MCAR (Missing Completely at Random) # did not help
 library(mice) # for missing value imputation
 library(Matrix) # for xgboost
+library(Ckmeans.1d.dp) # required to plot xgb importance plot
 
 # Directory
 dir.kaggle.srhm <- file.path("C:","Users","NeerajSubhedar","Google Drive","Kaggle","Sberbank Russian Housing Market")
@@ -108,7 +109,7 @@ testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
 traindata_sparse <- Matrix(data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
 testdata_sparse <- Matrix(data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 
-traindata_xgbMatrix <- xgb.DMatrix(data = traindata_sparse,label = traindata$price_doc)
+traindata_xgbMatrix <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(traindata$price_doc))
 
 param <- list(objective="reg:linear",
               eval_metric = "rmse",
@@ -120,4 +121,6 @@ param <- list(objective="reg:linear",
               colsample_bytree = .7
 )
 
-xgb_model1 <- xgboost(data = traindata_sparse,label = traindata_pricedoc,params = param)
+xgb_model1 <- xgb.train(params = param,data = traindata_xgbMatrix,nrounds = 1000)
+var_importance.xgb_model1 <- xgb.importance(model = xgb_model1,feature_names = colnames((traindata_sparse)))
+xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model1,n = 20)))
