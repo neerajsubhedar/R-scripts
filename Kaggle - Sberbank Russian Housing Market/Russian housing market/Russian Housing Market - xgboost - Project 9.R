@@ -125,24 +125,42 @@ xgb_model1 <- xgb.train(params = param,data = traindata_xgbMatrix,nrounds = 1000
 var_importance.xgb_model1 <- xgb.importance(model = xgb_model1,feature_names = colnames((traindata_sparse)))
 xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model1,n = 20)))
 
-# Validating the fit with rmsle
-val <- 0
-n <- length(traindata$price_doc)
-for (i in 1:n){
-  val[i] <- (log(antilog.target[i] + 1) - 
-               log(traindata$price_doc[i] + 1))^2
-}
-
-rmsle.glm.gaussian.model12 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.glm.gaussian.model12 # 0.5325109
-## RMSLE ends
-
-## Prediction
+## Prediction 1
 preds.xgb_model1 <- predict(xgb_model1,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 preds.xgb_model1[preds.xgb_model1 < 0] <- 0
 sum(is.na(preds.xgb_model1))
 sum(is.finite(preds.xgb_model1))
 
-## File
+## File 1
 submission12 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model1)
 write.csv(submission12,paste0(dir.kaggle.srhm,"/submissions/submission12.csv"),row.names = F)
+
+#######################################
+## with target variable transformation
+#######################################
+traindata_xgbMatrix2 <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(log(traindata$price_doc)))
+
+param <- list(objective="reg:linear",
+              eval_metric = "rmse",
+              eta = .05,
+              gamma = 1,
+              max_depth = 4,
+              min_child_weight = 1,
+              subsample = .7,
+              colsample_bytree = .7
+)
+
+xgb_model2 <- xgb.train(params = param,data = traindata_xgbMatrix2,nrounds = 1000)
+var_importance.xgb_model2 <- xgb.importance(model = xgb_model2,feature_names = colnames((traindata_sparse)))
+xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model2,n = 20)))
+
+## Prediction 2
+preds.xgb_model2 <- predict(xgb_model2,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
+preds.xgb_model2 <- exp(preds.xgb_model2)
+#preds.xgb_model1[preds.xgb_model1 < 0] <- 0
+sum(is.na(preds.xgb_model1))
+sum(is.finite(preds.xgb_model1))
+
+## File 2
+submission13 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model2)
+write.csv(submission13,paste0(dir.kaggle.srhm,"/submissions/submission13.csv"),row.names = F)
