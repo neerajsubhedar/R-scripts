@@ -124,3 +124,25 @@ param <- list(objective="reg:linear",
 xgb_model1 <- xgb.train(params = param,data = traindata_xgbMatrix,nrounds = 1000)
 var_importance.xgb_model1 <- xgb.importance(model = xgb_model1,feature_names = colnames((traindata_sparse)))
 xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model1,n = 20)))
+
+# Validating the fit with rmsle
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(antilog.target[i] + 1) - 
+               log(traindata$price_doc[i] + 1))^2
+}
+
+rmsle.glm.gaussian.model12 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.glm.gaussian.model12 # 0.5325109
+## RMSLE ends
+
+## Prediction
+preds.xgb_model1 <- predict(xgb_model1,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
+preds.xgb_model1[preds.xgb_model1 < 0] <- 0
+sum(is.na(preds.xgb_model1))
+sum(is.finite(preds.xgb_model1))
+
+## File
+submission12 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model1)
+write.csv(submission12,paste0(dir.kaggle.srhm,"/submissions/submission12.csv"),row.names = F)
