@@ -1,7 +1,7 @@
 ## With macro file
 ## Imputing all - change in mice approach
 ## merge all
-## 5/9/2017
+## 5/10/2017
 ## implementing xgboost
 
 # Clear workspace and environment
@@ -98,43 +98,47 @@ for (i in c(1,3:length(missing.means))){
   macro.merge.srhm.new[is.na(macro.merge.srhm.new[,names(missing.means[i])]),names(missing.means[i])] <- missing.means[i]
 }
 
-## Modeling xgboost Model 1
+## Dataset and feature engineering
 new.data <- macro.merge.srhm.new[,-c(1,2)]
 traindata <- new.data[new.data$type == "train",]
 traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
 testdata <- new.data[new.data$type == "test",]
 testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
 
+## Modeling xgboost Model 3
 ## create sparse matrix
 traindata_sparse <- Matrix(data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
 testdata_sparse <- Matrix(data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 
 traindata_xgbMatrix <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(traindata$price_doc))
 
+##
 param <- list(objective="reg:linear",
               eval_metric = "rmse",
               eta = .05,
+              lambda = 0.90,
+              alpha = 0.05,
               gamma = 1,
-              max_depth = 4,
+              max_depth = 5,
               min_child_weight = 1,
-              subsample = .7,
-              colsample_bytree = .7
+              subsample = 0.6,
+              colsample_bytree = 0.7
 )
 
-xgb_model1 <- xgb.train(params = param,data = traindata_xgbMatrix,nrounds = 1000)
-var_importance.xgb_model1 <- xgb.importance(model = xgb_model1,feature_names = colnames((traindata_sparse)))
-xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model1,n = 20)))
+xgb_model3 <- xgb.train(params = param,data = traindata_xgbMatrix,nrounds = 1000)
+var_importance.xgb_model3 <- xgb.importance(model = xgb_model3,feature_names = colnames((traindata_sparse)))
+xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model3,n = 20)))
 
-## Prediction 1
-preds.xgb_model1 <- predict(xgb_model1,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
-preds.xgb_model1[preds.xgb_model1 < 0] <- 0
-sum(is.na(preds.xgb_model1))
-sum(is.finite(preds.xgb_model1))
+## Prediction 3
+preds.xgb_model3 <- predict(xgb_model3,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
+sum(is.na(preds.xgb_model3))
+sum(is.finite(preds.xgb_model3))
+preds.xgb_model3[preds.xgb_model3 < 0] <- 0
 
 ## Fitted values for xgboost
-preds.train.xgb_model1 <- predict(xgb_model1,
+preds.train.xgb_model3 <- predict(xgb_model3,
                                   data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
-target <- preds.train.xgb_model1
+target <- preds.train.xgb_model3
 # Validating the fit with rmsle
 val <- 0
 n <- length(traindata$price_doc)
@@ -143,54 +147,10 @@ for (i in 1:n){
                log(traindata$price_doc[i] + 1))^2
 }
 
-rmsle.xgb.model1 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.xgb.model1 # 0.4230437
+rmsle.xgb.model3 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.xgb.model3 # 0.3850334
 
-## File 1 # 0.37020
-submission12 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model1)
-write.csv(submission12,paste0(dir.kaggle.srhm,"/submissions/submission12.csv"),row.names = F)
-
-#######################################
-## with target variable transformation
-#######################################
-traindata_xgbMatrix2 <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(log(traindata$price_doc)))
-
-param <- list(objective="reg:linear",
-              eval_metric = "rmse",
-              eta = .05,
-              gamma = 1,
-              max_depth = 4,
-              min_child_weight = 1,
-              subsample = .7,
-              colsample_bytree = .7
-)
-
-xgb_model2 <- xgb.train(params = param,data = traindata_xgbMatrix2,nrounds = 1000)
-var_importance.xgb_model2 <- xgb.importance(model = xgb_model2,feature_names = colnames((traindata_sparse)))
-xgb.plot.importance(importance_matrix = as.data.table(top_n(var_importance.xgb_model2,n = 20)))
-
-## Prediction 2
-preds.xgb_model2 <- predict(xgb_model2,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
-preds.xgb_model2 <- exp(preds.xgb_model2)
-#preds.xgb_model1[preds.xgb_model1 < 0] <- 0
-sum(is.na(preds.xgb_model1))
-sum(is.finite(preds.xgb_model1))
-
-## Fitted values for xgboost
-preds.train.xgb_model2 <- predict(xgb_model2,
-                                  data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
-target <- exp(preds.train.xgb_model2)
-# Validating the fit with rmsle
-val <- 0
-n <- length(traindata$price_doc)
-for (i in 1:n){
-  val[i] <- (log(target[i] + 1) - 
-               log(traindata$price_doc[i] + 1))^2
-}
-
-rmsle.xgb.model2 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.xgb.model2 # 0.3688373
-
-## File 2 # 0.34790
-submission13 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model2)
-write.csv(submission13,paste0(dir.kaggle.srhm,"/submissions/submission13.csv"),row.names = F)
+## File 3 # 0.34820
+## new params for submission15 # 0.35165
+submission15 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model3)
+write.csv(submission15,paste0(dir.kaggle.srhm,"/submissions/submission15.csv"),row.names = F)
