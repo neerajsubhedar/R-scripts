@@ -152,5 +152,6 @@ rmsle.xgb.model4 <- (sum(val,na.rm = T)/n)^(1/2)
 rmsle.xgb.model4 # 0.3456084
 
 ## File 4 # 0.50247 (poor: seems to be overfitting the data)
-submission16 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model4)
-write.csv(submission16,paste0(dir.kaggle.srhm,"/submissions/submission16.csv"),row.names = F)
+## submission17
+submission17 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model4)
+write.csv(submission17,paste0(dir.kaggle.srhm,"/submissions/submission17.csv"),row.names = F)
