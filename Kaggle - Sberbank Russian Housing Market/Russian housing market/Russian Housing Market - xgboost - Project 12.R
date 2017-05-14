@@ -1,5 +1,6 @@
 ## 5/13/2017
 ## implementing xgboost
+## improving model by interactions
 
 # Clear workspace and environment
 cat("\014")

@@ -1,6 +1,6 @@
-## 5/14/2017
+## 5/13/2017
 ## implementing xgboost
-## including hypertuning of the xgboost parameters
+## improving model by interactions
 
 # Clear workspace and environment
 cat("\014")
@@ -47,7 +47,7 @@ library(car) # boxtidwell
 library(data.table) #merge
 library(MissMech) #for MCAR (Missing Completely at Random) # did not help
 library(mice) # for missing value imputation
-library(Matrix) # for xgboost
+library(Matrix) # for xgboost and caret
 library(Ckmeans.1d.dp) # required to plot xgb importance plot
 library(caret) # for hypertuning in xgboost trees
 
@@ -105,29 +105,38 @@ traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
 testdata <- new.data[new.data$type == "test",]
 testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
 
-## Modeling xgboost Model 6 - with hyperparametric tuning
+## Modeling xgboost Model 5
 ## create sparse matrix
 traindata_sparse <- Matrix(data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
 testdata_sparse <- Matrix(data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 
 traindata_xgbMatrix <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(traindata$price_doc))
 
-## creating grid of control parameters to perform grid search
-xgb_grid1 <- expand.grid()
+## GLMNET
+#Set tuning parameters
+folds<-10
+repeats<-5
+control_params <- trainControl(method='repeatedCV',
+                               number=folds,
+                               repeats=repeats,
+                               returnResamp='none', 
+                               returnData=FALSE,
+                               savePredictions=TRUE, 
+                               verboseIter=TRUE,
+                               allowParallel=TRUE,
+                               index=createMultiFolds(traindata$price_doc, k=folds, times=repeats))
+PP <- c('center', 'scale')
 
-## packing the control parameters
-xgb_trcontrol1 = trainControl()
-
-## XGB new approach
-glmnet_model1 <- train(x = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
-                    y = traindata$price_doc,
-                    trControl = xgb_trcontrol1,
-                    tuneGrid = xgb_grid1,metric = "rmse",
-                    method = "glmnet"     # label for the model
-                    )
+#Train glmnet model from caret package
+glmnet_model1 <- train(y = traindata$price_doc,
+                       x = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
+                       method='glmnet',
+                       trControl=control_params,
+                       tuneGrid = expand.grid(.alpha=seq(0,0.05,by=0.0025),.lambda=seq(0,0.05,by=0.01)),
+                       preProcess=PP)
 
 # RMSLE for XGB5 data
-target <- predict(xgb_model5,data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
+target <- predict(glmnet_model1,data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
 # Validating the fit with rmsle
 val <- 0
 n <- length(traindata$price_doc)
@@ -136,15 +145,11 @@ for (i in 1:n){
                log(traindata$price_doc[i] + 1))^2
 }
 
-rmsle.xgb.model5 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.xgb.model5 # 0.4259445
+rmsle.glmnet.model1 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.glmnet.model1 # 0.5254891
 
-## Predictions with cross-validation
-preds.xgb_model5 <- predict(xgb_model5,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
-sum(is.na(preds.xgb_model5))
-sum(is.finite(preds.xgb_model5))
-preds.xgb_model5[preds.xgb_model5<0] <- 0
+preds.glmnet_model1 <- predict(glmnet_model1,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 
-## File - submission 18 # 0.34350
-submission18 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model5)
-write.csv(submission18,paste0(dir.kaggle.srhm,"/submissions/submission18.csv"),row.names = F)
+## File - submission 19 # 0.45485
+submission19 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.glmnet_model1)
+write.csv(submission19,paste0(dir.kaggle.srhm,"/submissions/submission19.csv"),row.names = F)
