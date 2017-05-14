@@ -2,6 +2,8 @@
 ## implementing xgboost
 ## improving model by interactions
 
+## 5/14/2017: Model 6
+
 # Clear workspace and environment
 cat("\014")
 rm(list = ls())
@@ -186,3 +188,50 @@ preds.xgb_model5[preds.xgb_model5<0] <- 0
 ## File - submission 18 # 0.34350
 submission18 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model5)
 write.csv(submission18,paste0(dir.kaggle.srhm,"/submissions/submission18.csv"),row.names = F)
+
+## XGB 6
+## Parameters
+param <- list(objective="reg:linear",  # linear regression
+              eval_metric = "rmse",    # model evaluation metrics
+              eta = .05,               # learning rate 
+              lambda = 1,           # L1 regularization
+              alpha = 0,            # L2 regularization
+              gamma = 1,               #
+              max_depth = 5,           # Maximum tree depth
+              min_child_weight = 1,
+              subsample = 0.6,         # data sample size for every interation
+              colsample_bytree = 0.7   # column sample size for every iteration
+)
+
+## XGB new approach
+xgb_model6 <- xgboost(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
+                      label = traindata$price_doc,   # label for the model
+                      params = param,                # list of parameters
+                      nrounds = 500,                 # number of rounds
+                      print.every.n = 10,            # print every nth iteration      
+                      verbose = T,                   #
+                      early.stop.round = 10          # stops after 10 rounds if no improvement
+)
+
+# RMSLE for XGB6 data
+target <- predict(xgb_model6,data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
+# Validating the fit with rmsle
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(target[i] + 1) - 
+               log(traindata$price_doc[i] + 1))^2
+}
+
+rmsle.xgb.model6 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.xgb.model6 # 0.4257431
+
+## Predictions with cross-validation
+preds.xgb_model6 <- predict(xgb_model6,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
+sum(is.na(preds.xgb_model6))
+sum(is.finite(preds.xgb_model6))
+preds.xgb_model6[preds.xgb_model6<0] <- 0
+
+## File - submission 21 # 0.34488
+submission21 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.xgb_model6)
+write.csv(submission21,paste0(dir.kaggle.srhm,"/submissions/submission21.csv"),row.names = F)

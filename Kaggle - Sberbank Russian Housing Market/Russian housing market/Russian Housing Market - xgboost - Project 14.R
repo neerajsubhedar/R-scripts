@@ -153,3 +153,46 @@ preds.glmnet_model1 <- predict(glmnet_model1,data.matrix(testdata[,!(colnames(te
 ## File - submission 19 # 0.45485
 submission19 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.glmnet_model1)
 write.csv(submission19,paste0(dir.kaggle.srhm,"/submissions/submission19.csv"),row.names = F)
+
+
+## GLMNET 2
+#Set tuning parameters
+folds<- 5
+repeats<-5
+control_params <- trainControl(method='repeatedCV',
+                               number=folds,
+                               repeats=repeats,
+                               returnResamp='none', 
+                               returnData=FALSE,
+                               savePredictions=TRUE, 
+                               verboseIter=TRUE,
+                               allowParallel=TRUE,
+                               index=createMultiFolds(traindata$price_doc, k=folds, times=repeats))
+PP <- c('center', 'scale')
+
+#Train glmnet model from caret package
+glmnet_model2 <- train(y = traindata$price_doc,
+                       x = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
+                       method='glmnet',
+                       trControl=control_params,
+                       tuneGrid = expand.grid(.alpha=seq(0,1,by=0.1),.lambda=seq(1,0,by=-0.1)),
+                       preProcess=PP)
+
+# RMSLE for XGB5 data
+target <- predict(glmnet_model2,data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
+# Validating the fit with rmsle
+val <- 0
+n <- length(traindata$price_doc)
+for (i in 1:n){
+  val[i] <- (log(target[i] + 1) - 
+               log(traindata$price_doc[i] + 1))^2
+}
+
+rmsle.glmnet.model2 <- (sum(val,na.rm = T)/n)^(1/2)
+rmsle.glmnet.model2 # 0.5254891
+
+preds.glmnet_model2 <- predict(glmnet_model1,data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
+
+## File - submission 20 # 0.45485
+submission20 <- cbind.data.frame(id=test.srhm$id,price_doc = preds.glmnet_model2)
+write.csv(submission20,paste0(dir.kaggle.srhm,"/submissions/submission20.csv"),row.names = F)
