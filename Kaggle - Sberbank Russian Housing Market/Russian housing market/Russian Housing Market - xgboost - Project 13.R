@@ -1,5 +1,6 @@
-## 5/13/2017
+## 5/14/2017
 ## implementing xgboost
+## including hypertuning of the xgboost parameters
 
 # Clear workspace and environment
 cat("\014")
@@ -104,64 +105,51 @@ traindata <- traindata[,!(colnames(traindata) %in% c("type","product_type"))]
 testdata <- new.data[new.data$type == "test",]
 testdata <- testdata[,!(colnames(testdata) %in% c("type","product_type"))]
 
-## Modeling xgboost Model 5
+## Modeling xgboost Model 6 - with hyperparametric tuning
 ## create sparse matrix
 traindata_sparse <- Matrix(data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
 testdata_sparse <- Matrix(data.matrix(testdata[,!(colnames(testdata) %in% "price_doc")]))
 
 traindata_xgbMatrix <- xgb.DMatrix(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),label = data.matrix(traindata$price_doc))
 
-## Parameters
-param <- list(objective="reg:linear",  # linear regression
-              eval_metric = "rmse",    # model evaluation metrics
-              eta = .05,               # learning rate 
-              lambda = 0.90,           # L1 regularization
-              alpha = 0.05,            # L2 regularization
-              gamma = 1,               #
-              max_depth = 5,           # Maximum tree depth
-              min_child_weight = 1,
-              subsample = 0.6,         # data sample size for every interation
-              colsample_bytree = 0.7   # column sample size for every iteration
+## creating grid of control parameters to perform grid search
+xgb_grid1 <- expand.grid(#nrounds = 1000,
+                         #eta = seq(from=0.001,to = 0.999, by = 0.1), #learning rate 
+                         lambda = seq(from=0.01,to = 1, by = 0.01),   # L1 regularization
+                         alpha = seq(from=1,to = 0.01, by = -0.01)#,   # L2 regularization
+                         #gamma = 1,                                  #
+                         #max_depth = c(2, 4, 6, 8, 10),              # Maximum tree depth
+                         #min_child_weight = 1,
+                         #subsample = c(0.5,0.6,0.7),         # data sample size for every interation
+                         #colsample_bytree = c(0.5,0.6,0.7)   # column sample size for every iteration
+                         )
+
+## packing the control parameters
+xgb_trcontrol1 = trainControl(
+  method = "cv",
+  number = 5,
+  verboseIter = TRUE,
+  returnData = FALSE,
+  returnResamp = "all",               # save losses across all models
+  #classProbs = TRUE,                  # set to TRUE for AUC to be computed
+  summaryFunction = twoClassSummary,
+  search = "grid",
+  savePredictions = "final",
+  allowParallel = TRUE
 )
+
+## Parameters
+#param <- list(objective="reg:linear",  # linear regression
+#              eval_metric = "rmse"    # model evaluation metrics
+#              )
 
 ## XGB new approach
-xgb_model5 <- xgboost(data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
-                      label = traindata$price_doc,   # label for the model
-                      params = param,                # list of parameters
-                      nrounds = 500,                 # number of rounds
-                      print.every.n = 10,            # print every nth iteration      
-                      verbose = T,                   #
-                      early.stop.round = 10          # stops after 10 rounds if no improvement
-                      )
-
-## XGB cross-validation
-xgb_model5_cv1 <- xgb.cv(params = param,
-       data = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
-       nrounds = 500,                 # number of iterations
-       nfold = 10,                    # number of folds
-       label = traindata$price_doc,   # label
-       prediction = T,                # return predictions for final model
-       showsd = T,                    # show standard deviation
-       print.every.n = 10,            # print every nth iteration      
-       verbose = T,                   #
-       early.stop.round = 10          # stops after 10 rounds if no improvement
-)
-
-sum(is.na(xgb_model5_cv1$pred))
-sum(is.finite(xgb_model5_cv1$pred))
-
-# RMSLE for CV data
-target <- xgb_model5_cv1$pred
-# Validating the fit with rmsle
-val <- 0
-n <- length(traindata$price_doc)
-for (i in 1:n){
-  val[i] <- (log(target[i] + 1) - 
-               log(traindata$price_doc[i] + 1))^2
-}
-
-rmsle.xgb.model5_cv1 <- (sum(val,na.rm = T)/n)^(1/2)
-rmsle.xgb.model5_cv1 # 0.4716712
+glmnet_model1 <- train(x = data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]),
+                    y = traindata$price_doc,
+                    trControl = xgb_trcontrol1,
+                    tuneGrid = xgb_grid1,metric = "rmse",
+                    method = "glmnet"     # label for the model
+                    )
 
 # RMSLE for XGB5 data
 target <- predict(xgb_model5,data.matrix(traindata[,!(colnames(traindata) %in% "price_doc")]))
